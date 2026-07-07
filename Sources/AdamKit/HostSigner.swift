@@ -1,13 +1,19 @@
 import Foundation
 
 /// What the host wallet returns for a login challenge.
+/// The output of CIP-30 `signData` over the login challenge: a COSE_Sign1 and
+/// the COSE_Key that signed it. The gateway verifies the COSE signature and
+/// binds the key to the claimed wallet address (COSE address header + the key
+/// hashing to the address credential), so login is address-bound.
 public struct AuthSignature: Sendable {
+    /// CIP-30 `signData` COSE_Sign1, hex.
     public let signatureHex: String
-    public let publicKeyHex: String
+    /// CIP-30 `signData` COSE_Key, hex.
+    public let coseKeyHex: String
 
-    public init(signatureHex: String, publicKeyHex: String) {
+    public init(signatureHex: String, coseKeyHex: String) {
         self.signatureHex = signatureHex
-        self.publicKeyHex = publicKeyHex
+        self.coseKeyHex = coseKeyHex
     }
 }
 

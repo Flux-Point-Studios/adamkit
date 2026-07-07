@@ -5,7 +5,8 @@ struct LoginRequestBody: Encodable {
     let chain: String
     let message: String
     let signature: String
-    let publicKey: String
+    let signatureType: String
+    let coseKeyHex: String
     let deviceId: String
     let deviceName: String?
     let partnerId: String?
@@ -70,7 +71,8 @@ public actor AdamSession {
                 chain: "cardano",
                 message: challenge.message,
                 signature: signature.signatureHex,
-                publicKey: signature.publicKeyHex,
+                signatureType: "cip8",
+                coseKeyHex: signature.coseKeyHex,
                 deviceId: deviceId,
                 deviceName: deviceName,
                 partnerId: client.config.partnerId

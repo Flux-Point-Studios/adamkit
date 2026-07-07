@@ -367,7 +367,7 @@ actor GatedSigner: AdamHostSigner {
     private var witnessed = 0
 
     func signAuthChallenge(_ challenge: AuthChallenge, walletAddress: String) async throws -> AuthSignature {
-        AuthSignature(signatureHex: "00", publicKeyHex: "00")
+        AuthSignature(signatureHex: "00", coseKeyHex: "00")
     }
 
     func witnessTransaction(

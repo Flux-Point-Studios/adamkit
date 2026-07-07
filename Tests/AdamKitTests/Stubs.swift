@@ -82,7 +82,7 @@ actor StubHTTPTransport: HTTPTransport {
 actor FakeSigner: AdamHostSigner {
     var authSignature = AuthSignature(
         signatureHex: String(repeating: "0", count: 128),
-        publicKeyHex: String(repeating: "0", count: 64)
+        coseKeyHex: String(repeating: "0", count: 64)
     )
     var witness: TransactionWitness = .vkey(
         vkeyHex: String(repeating: "a", count: 64),
