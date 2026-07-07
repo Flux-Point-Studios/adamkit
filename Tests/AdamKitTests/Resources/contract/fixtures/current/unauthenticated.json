@@ -1,0 +1,16 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/api/v1/agent/approvals"
+  },
+  "response": {
+    "statusCode": 401,
+    "body": {
+      "error": {
+        "code": "AUTH_REQUIRED",
+        "message": "<volatile>",
+        "requestId": "<volatile>"
+      }
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/api/v1/auth/login",
+    "body": {
+      "walletAddress": "addr_test1qz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgse35a3x",
+      "chain": "cardano",
+      "message": "<volatile>",
+      "signature": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "signatureType": "cip8",
+      "coseKeyHex": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "response": {
+    "statusCode": 200,
+    "body": {
+      "data": {
+        "accessToken": "<volatile>",
+        "refreshToken": "<volatile>",
+        "expiresIn": 3600,
+        "tokenType": "Bearer",
+        "user": {
+          "id": "user_addr_tes",
+          "walletAddress": "addr_test1qz2fxv2umyhttkxyxp8x0dlpdt3k6cwng5pxj3jhsydzer3n0d3vllmyqwsx5wktcd8cc3sq835lu7drv2xwl2wywfgse35a3x",
+          "chain": "cardano",
+          "tier": "premium",
+          "scopes": [
+            "market:read",
+            "analysis:read",
+            "trade:execute",
+            "bot:manage"
+          ],
+          "createdAt": "<volatile>"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "description": "sign_required / approval_required channel pushes, emitted by the real AgentBridge from a synthetic runtime event (createdAt normalized).",
+  "pushes": [
+    {
+      "event": "sign_required",
+      "payload": {
+        "channel": "notifications",
+        "event": "sign_required",
+        "data": {
+          "requestId": "req-fixture",
+          "unsignedCborHex": "84a300d90102818258200707070707070707070707070707070707070707070707070707070707070707000181825839010fdc780023d8be7c9ff3a6bdc0d8d3b263bd0cc12448c40948efbf42e557890352095f1cf6fd2b7d1a28e3c3cb029f48cf34ff890a28d1761a001e8480021a0002bf20a0f5f6",
+          "bodyHashHex": "8b533c63d4ea73196758552fd2e4601a27ba6801bb8394c0fa77875a62fc3ffd",
+          "stepId": "step-1",
+          "action": "swap",
+          "protocol": "saturnswap",
+          "description": "Sell 50 ADA for SNEK",
+          "rationale": "fixture rationale",
+          "estimatedValueAda": 50,
+          "estimatedFeeAda": 0.2,
+          "createdAt": 0
+        },
+        "timestamp": 0
+      }
+    },
+    {
+      "event": "approval_required",
+      "payload": {
+        "channel": "notifications",
+        "event": "approval_required",
+        "data": {
+          "id": "approval-plan-fixture",
+          "type": "approval",
+          "title": "Approval Needed",
+          "message": "Approve strategy plan",
+          "timestamp": 0,
+          "read": false,
+          "approval": {
+            "planId": "plan-fixture",
+            "rationale": "fixture rationale",
+            "action": "swap",
+            "protocol": "saturnswap",
+            "estimatedValueAda": 50,
+            "estimatedFeeAda": 0.2,
+            "status": "pending"
+          }
+        },
+        "timestamp": 0
+      }
+    }
+  ]
+}

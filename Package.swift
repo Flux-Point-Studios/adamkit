@@ -25,6 +25,7 @@ let package = Package(
         .testTarget(
             name: "AdamKitTests",
             dependencies: ["AdamKit"],
+            resources: [.copy("Resources/contract")],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
     ]

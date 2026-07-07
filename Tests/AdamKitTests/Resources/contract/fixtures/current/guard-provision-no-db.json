@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/api/v1/guard/provision",
+    "headers": {
+      "authorization": "Bearer <volatile>"
+    },
+    "body": {
+      "principalAda": 100
+    }
+  },
+  "response": {
+    "statusCode": 503,
+    "body": {
+      "error": {
+        "code": "DB_UNAVAILABLE",
+        "message": "<volatile>"
+      }
+    }
+  }
+}

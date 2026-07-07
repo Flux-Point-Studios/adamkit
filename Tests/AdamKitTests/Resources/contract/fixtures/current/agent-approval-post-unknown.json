@@ -1,0 +1,22 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/api/v1/agent/approvals/plan-fixture-missing",
+    "headers": {
+      "authorization": "Bearer <volatile>"
+    },
+    "body": {
+      "approved": false
+    }
+  },
+  "response": {
+    "statusCode": 503,
+    "body": {
+      "error": {
+        "code": "RUNTIME_UNAVAILABLE",
+        "message": "<volatile>",
+        "requestId": "<volatile>"
+      }
+    }
+  }
+}

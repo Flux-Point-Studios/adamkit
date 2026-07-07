@@ -1,0 +1,49 @@
+{
+  "description": "TransactionWitnessSet CBOR → vkey witnesses under map key 0. Sets with no key 0 yield zero witnesses.",
+  "cases": [
+    {
+      "name": "single-vkey-witness",
+      "witnessSetHex": "a100d90102818258207ea09a34aebb13c9841c71397b1cabfec5ddf950405293dee496cac2f437480a58400b69bee757e9a6568a7e15c3eeeb576ab5d3f04f8f1bb8fe6084a1c1f61cac3c7296048b07c9ed36d966926d7cc2348fa2d344b83744e8c4c247fd564dc49d0b",
+      "expected": [
+        {
+          "vkeyHex": "7ea09a34aebb13c9841c71397b1cabfec5ddf950405293dee496cac2f437480a",
+          "signatureHex": "0b69bee757e9a6568a7e15c3eeeb576ab5d3f04f8f1bb8fe6084a1c1f61cac3c7296048b07c9ed36d966926d7cc2348fa2d344b83744e8c4c247fd564dc49d0b"
+        }
+      ]
+    },
+    {
+      "name": "two-vkey-witnesses",
+      "witnessSetHex": "a100d90102828258207ea09a34aebb13c9841c71397b1cabfec5ddf950405293dee496cac2f437480a5840b27e91defe7dfdf4180d07f9b2dc9c4604bae029df15881b1c7465735e5f1a7758469be0272933713fd71914d01962b962c6f71a8334ea8d442e08cfff16ad00825820a8c60170372c54f5ac228201acc37733376196890b84f6d7c100c68b7586ab885840a23378dcfb2b7ff2af2d0ed1f380a14bcc6f012eeb2ffbb320426a5b96c155a650357751088d7e83e6a40bf391867f7df75cfa33fd12b34cc53e1950e0ed990f",
+      "expected": [
+        {
+          "vkeyHex": "7ea09a34aebb13c9841c71397b1cabfec5ddf950405293dee496cac2f437480a",
+          "signatureHex": "b27e91defe7dfdf4180d07f9b2dc9c4604bae029df15881b1c7465735e5f1a7758469be0272933713fd71914d01962b962c6f71a8334ea8d442e08cfff16ad00"
+        },
+        {
+          "vkeyHex": "a8c60170372c54f5ac228201acc37733376196890b84f6d7c100c68b7586ab88",
+          "signatureHex": "a23378dcfb2b7ff2af2d0ed1f380a14bcc6f012eeb2ffbb320426a5b96c155a650357751088d7e83e6a40bf391867f7df75cfa33fd12b34cc53e1950e0ed990f"
+        }
+      ]
+    },
+    {
+      "name": "witness-set-with-extra-key",
+      "witnessSetHex": "a20081825820a8c60170372c54f5ac228201acc37733376196890b84f6d7c100c68b7586ab88584095fcf47fd6fb65aded843e8f26c4fbc3d323472124b7a6d5dcdb7fd0c90ca718a016b3d1f1fe692d3c6fde07cbded2e8d9f9b9be7496cd9287646a2346d349060380",
+      "expected": [
+        {
+          "vkeyHex": "a8c60170372c54f5ac228201acc37733376196890b84f6d7c100c68b7586ab88",
+          "signatureHex": "95fcf47fd6fb65aded843e8f26c4fbc3d323472124b7a6d5dcdb7fd0c90ca718a016b3d1f1fe692d3c6fde07cbded2e8d9f9b9be7496cd9287646a2346d34906"
+        }
+      ]
+    }
+  ],
+  "noVkeyCases": [
+    {
+      "name": "empty-witness-set",
+      "witnessSetHex": "a0"
+    },
+    {
+      "name": "only-plutus-scripts-key",
+      "witnessSetHex": "a10380"
+    }
+  ]
+}

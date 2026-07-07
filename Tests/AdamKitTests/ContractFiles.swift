@@ -3,17 +3,14 @@ import Testing
 
 @testable import AdamKit
 
-/// Loads the committed wire-contract artifacts from packages/sdk-contract.
-/// AdamKit is pinned to them: if the gateway or reference signer changes them,
-/// the drift test fails over there and these tests fail over here.
+/// Loads the committed wire-contract artifacts (vectors + endpoint fixtures)
+/// AdamKit is pinned to. They are bundled as test resources so the package is
+/// self-contained (works as a standalone SwiftPM repo, not only inside the
+/// monorepo). The canonical copies live in packages/sdk-contract; the
+/// sdk-contract drift test keeps this bundled copy byte-identical to them.
 enum ContractFiles {
     static var root: URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // AdamKitTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // adamkit/
-            .deletingLastPathComponent()  // packages/
-            .appendingPathComponent("sdk-contract")
+        Bundle.module.resourceURL!.appendingPathComponent("contract")
     }
 
     static func vector<T: Decodable>(_ name: String, as type: T.Type) throws -> T {

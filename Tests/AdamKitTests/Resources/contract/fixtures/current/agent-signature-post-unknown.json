@@ -1,0 +1,24 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/api/v1/agent/signatures/req-fixture-missing",
+    "headers": {
+      "authorization": "Bearer <volatile>"
+    },
+    "body": {
+      "approved": true,
+      "vkeyHex": "0000000000000000000000000000000000000000000000000000000000000000",
+      "signatureHex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "response": {
+    "statusCode": 503,
+    "body": {
+      "error": {
+        "code": "RUNTIME_UNAVAILABLE",
+        "message": "<volatile>",
+        "requestId": "<volatile>"
+      }
+    }
+  }
+}

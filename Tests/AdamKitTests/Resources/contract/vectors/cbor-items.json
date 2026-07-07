@@ -1,0 +1,216 @@
+{
+  "description": "CBOR span-walker vectors. valid: item at offset 0 spans the full hex. invalid: both walkers throw. truncated: Swift walker must throw (TS reference misreads out-of-range indices as undefined).",
+  "valid": [
+    {
+      "name": "uint-tiny",
+      "cborHex": "00",
+      "spanLength": 1
+    },
+    {
+      "name": "uint-23",
+      "cborHex": "17",
+      "spanLength": 1
+    },
+    {
+      "name": "uint-u8",
+      "cborHex": "1818",
+      "spanLength": 2
+    },
+    {
+      "name": "uint-u16",
+      "cborHex": "190100",
+      "spanLength": 3
+    },
+    {
+      "name": "uint-u32",
+      "cborHex": "1a00010000",
+      "spanLength": 5
+    },
+    {
+      "name": "uint-u64",
+      "cborHex": "1b0000000100000000",
+      "spanLength": 9
+    },
+    {
+      "name": "nint-tiny",
+      "cborHex": "20",
+      "spanLength": 1
+    },
+    {
+      "name": "nint-u8",
+      "cborHex": "3863",
+      "spanLength": 2
+    },
+    {
+      "name": "bytes-empty",
+      "cborHex": "40",
+      "spanLength": 1
+    },
+    {
+      "name": "bytes-short",
+      "cborHex": "43010203",
+      "spanLength": 4
+    },
+    {
+      "name": "bytes-u8-len",
+      "cborHex": "5818abababababababababababababababababababababababab",
+      "spanLength": 26
+    },
+    {
+      "name": "bytes-u16-len",
+      "cborHex": "590100cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+      "spanLength": 259
+    },
+    {
+      "name": "bytes-indefinite",
+      "cborHex": "5f42aabb41ccff",
+      "spanLength": 7
+    },
+    {
+      "name": "text-short",
+      "cborHex": "6568656c6c6f",
+      "spanLength": 6
+    },
+    {
+      "name": "text-indefinite",
+      "cborHex": "7f63616461616dff",
+      "spanLength": 8
+    },
+    {
+      "name": "array-empty",
+      "cborHex": "80",
+      "spanLength": 1
+    },
+    {
+      "name": "array-nested",
+      "cborHex": "8301820203820405",
+      "spanLength": 8
+    },
+    {
+      "name": "array-indefinite",
+      "cborHex": "9f01820203ff",
+      "spanLength": 6
+    },
+    {
+      "name": "array-indefinite-nested-indefinite",
+      "cborHex": "9f019f0203ff03ff",
+      "spanLength": 8
+    },
+    {
+      "name": "map-empty",
+      "cborHex": "a0",
+      "spanLength": 1
+    },
+    {
+      "name": "map-two-pairs",
+      "cborHex": "a201820203039f0405ff",
+      "spanLength": 10
+    },
+    {
+      "name": "map-indefinite",
+      "cborHex": "bf61610161624261bbff",
+      "spanLength": 10
+    },
+    {
+      "name": "tag-bignum",
+      "cborHex": "c249010000000000000000",
+      "spanLength": 11
+    },
+    {
+      "name": "tag-nested-tag",
+      "cborHex": "c1c100",
+      "spanLength": 3
+    },
+    {
+      "name": "simple-false",
+      "cborHex": "f4",
+      "spanLength": 1
+    },
+    {
+      "name": "simple-true",
+      "cborHex": "f5",
+      "spanLength": 1
+    },
+    {
+      "name": "simple-null",
+      "cborHex": "f6",
+      "spanLength": 1
+    },
+    {
+      "name": "simple-u8",
+      "cborHex": "f820",
+      "spanLength": 2
+    },
+    {
+      "name": "float-half",
+      "cborHex": "f93c00",
+      "spanLength": 3
+    },
+    {
+      "name": "float-single",
+      "cborHex": "fa3f800000",
+      "spanLength": 5
+    },
+    {
+      "name": "float-double",
+      "cborHex": "fb3ff0000000000000",
+      "spanLength": 9
+    }
+  ],
+  "invalid": [
+    {
+      "name": "reserved-ai-28",
+      "cborHex": "811c"
+    },
+    {
+      "name": "reserved-ai-29",
+      "cborHex": "811d"
+    },
+    {
+      "name": "reserved-ai-30",
+      "cborHex": "811e"
+    },
+    {
+      "name": "top-level-not-array",
+      "cborHex": "a0"
+    }
+  ],
+  "truncated": [
+    {
+      "name": "truncated-u16-header",
+      "cborHex": "8119"
+    },
+    {
+      "name": "truncated-u16-arg",
+      "cborHex": "811901"
+    },
+    {
+      "name": "truncated-u64-arg",
+      "cborHex": "811b00000001"
+    },
+    {
+      "name": "truncated-bytes-payload",
+      "cborHex": "8143aabb"
+    },
+    {
+      "name": "huge-length-claim",
+      "cborHex": "5bffffffffffffffff"
+    },
+    {
+      "name": "truncated-array-elements",
+      "cborHex": "830102"
+    },
+    {
+      "name": "unterminated-indefinite-array",
+      "cborHex": "9f0102"
+    },
+    {
+      "name": "unterminated-indefinite-bytes",
+      "cborHex": "5f42aabb"
+    },
+    {
+      "name": "empty-input",
+      "cborHex": ""
+    }
+  ]
+}

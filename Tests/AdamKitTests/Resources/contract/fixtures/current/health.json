@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/healthz"
+  },
+  "response": {
+    "statusCode": 200,
+    "body": {
+      "status": "ok",
+      "timestamp": "<volatile>"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/api/v1/agent/signatures/req-fixture-missing",
+    "headers": {
+      "authorization": "Bearer <volatile>"
+    },
+    "body": {
+      "approved": true
+    }
+  },
+  "response": {
+    "statusCode": 400,
+    "body": {
+      "error": {
+        "code": "SIGNATURE_INCOMPLETE",
+        "message": "<volatile>",
+        "requestId": "<volatile>"
+      }
+    }
+  }
+}

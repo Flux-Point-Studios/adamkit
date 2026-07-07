@@ -1,0 +1,257 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/api/v1/strategies",
+    "headers": {
+      "authorization": "Bearer <volatile>"
+    }
+  },
+  "response": {
+    "statusCode": 200,
+    "body": {
+      "data": {
+        "strategies": [
+          {
+            "id": "conservative",
+            "label": "Conservative",
+            "description": "Safe, low-risk spot trading only. High native reserve, tight position limits, and restricted protocol access.",
+            "riskTier": "low",
+            "protocols": [
+              "saturnswap",
+              "dexhunter"
+            ],
+            "release": {
+              "paper": true,
+              "live": "released"
+            },
+            "constraints": {
+              "maxPositions": 5,
+              "maxTokenExposurePct": 15,
+              "maxSlippageBps": 50,
+              "dailyLossLimitPct": 5,
+              "cycleIntervalSeconds": 600,
+              "minNativeReservePct": 20
+            }
+          },
+          {
+            "id": "balanced",
+            "label": "Balanced",
+            "description": "Moderate risk with broader protocol access including DeFi. Good default for most users.",
+            "riskTier": "moderate",
+            "protocols": [
+              "saturnswap",
+              "dexhunter",
+              "minswap",
+              "sundaeswap",
+              "wingriders",
+              "muesliswap",
+              "indigo",
+              "fluid",
+              "surf"
+            ],
+            "release": {
+              "paper": true,
+              "live": "coming_soon"
+            },
+            "constraints": {
+              "maxPositions": 10,
+              "maxTokenExposurePct": 25,
+              "maxSlippageBps": 100,
+              "dailyLossLimitPct": 10,
+              "cycleIntervalSeconds": 300,
+              "minNativeReservePct": 15
+            }
+          },
+          {
+            "id": "aggressive",
+            "label": "Aggressive",
+            "description": "High risk tolerance with all protocols including Strike perps. For experienced traders only.",
+            "riskTier": "high",
+            "protocols": [
+              "saturnswap",
+              "dexhunter",
+              "minswap",
+              "sundaeswap",
+              "wingriders",
+              "muesliswap",
+              "indigo",
+              "fluid",
+              "surf",
+              "strike",
+              "cardexscan"
+            ],
+            "release": {
+              "paper": true,
+              "live": "coming_soon"
+            },
+            "constraints": {
+              "maxPositions": 20,
+              "maxTokenExposurePct": 35,
+              "maxSlippageBps": 200,
+              "dailyLossLimitPct": 15,
+              "cycleIntervalSeconds": 120,
+              "minNativeReservePct": 10
+            }
+          },
+          {
+            "id": "yield_farmer",
+            "label": "Yield Farmer",
+            "description": "Focused on lending, staking, and LP yield. Longer cycle intervals since yield changes slowly.",
+            "riskTier": "moderate",
+            "protocols": [
+              "saturnswap",
+              "indigo",
+              "fluid",
+              "surf"
+            ],
+            "release": {
+              "paper": true,
+              "live": "coming_soon"
+            },
+            "constraints": {
+              "maxPositions": 8,
+              "maxTokenExposurePct": 30,
+              "maxSlippageBps": 100,
+              "dailyLossLimitPct": 8,
+              "cycleIntervalSeconds": 1800,
+              "minNativeReservePct": 25
+            }
+          },
+          {
+            "id": "dca_accumulator",
+            "label": "DCA Accumulator",
+            "description": "Dollar-cost averaging into positions over time. High reserve, low frequency, patient accumulation.",
+            "riskTier": "low",
+            "protocols": [
+              "saturnswap",
+              "dexhunter",
+              "cardexscan"
+            ],
+            "release": {
+              "paper": true,
+              "live": "coming_soon"
+            },
+            "constraints": {
+              "maxPositions": 5,
+              "maxTokenExposurePct": 20,
+              "maxSlippageBps": 100,
+              "dailyLossLimitPct": 5,
+              "cycleIntervalSeconds": 3600,
+              "minNativeReservePct": 30
+            }
+          },
+          {
+            "id": "momentum_trader",
+            "label": "Momentum Trader",
+            "description": "T-Mode style momentum trading. Fast cycles, many positions, captures trending tokens.",
+            "riskTier": "high",
+            "protocols": [
+              "saturnswap",
+              "dexhunter",
+              "cardexscan"
+            ],
+            "release": {
+              "paper": true,
+              "live": "coming_soon"
+            },
+            "constraints": {
+              "maxPositions": 15,
+              "maxTokenExposurePct": 20,
+              "maxSlippageBps": 150,
+              "dailyLossLimitPct": 12,
+              "cycleIntervalSeconds": 60,
+              "minNativeReservePct": 10
+            }
+          },
+          {
+            "id": "market_maker",
+            "label": "Market Maker",
+            "description": "Two-way Avellaneda-Stoikov quoting on the SaturnSwap V4 beacon order book. Symmetric quotes around an inventory-skewed reservation price, dual-oracle circuit breaker, budget-bounded ladders, event-driven reprice.",
+            "riskTier": "high",
+            "protocols": [
+              "saturnswap"
+            ],
+            "release": {
+              "paper": true,
+              "live": "coming_soon"
+            },
+            "constraints": {
+              "maxPositions": 20,
+              "maxTokenExposurePct": 50,
+              "maxSlippageBps": 100,
+              "dailyLossLimitPct": 8,
+              "cycleIntervalSeconds": 20,
+              "minNativeReservePct": 15
+            }
+          },
+          {
+            "id": "perp_trader",
+            "label": "Perp Trader",
+            "description": "Leveraged perpetuals trading via Strike. High reserve for margin, fast cycle, configurable leverage.",
+            "riskTier": "high",
+            "protocols": [
+              "strike"
+            ],
+            "release": {
+              "paper": true,
+              "live": "coming_soon"
+            },
+            "constraints": {
+              "maxPositions": 5,
+              "maxTokenExposurePct": 25,
+              "maxSlippageBps": 100,
+              "dailyLossLimitPct": 10,
+              "cycleIntervalSeconds": 60,
+              "minNativeReservePct": 20
+            }
+          },
+          {
+            "id": "stable_arb",
+            "label": "Stablecoin Arbitrage",
+            "description": "Exploits price discrepancies between Cardano stablecoins (USDCx, USDA, USDM, DJED, iUSD). Low risk since all assets target $1 peg. Uses DEX aggregators and Danogo concentrated liquidity pools for best execution.",
+            "riskTier": "low",
+            "protocols": [
+              "saturnswap",
+              "dexhunter",
+              "danogo"
+            ],
+            "release": {
+              "paper": true,
+              "live": "coming_soon"
+            },
+            "constraints": {
+              "maxPositions": 8,
+              "maxTokenExposurePct": 50,
+              "maxSlippageBps": 50,
+              "dailyLossLimitPct": 3,
+              "cycleIntervalSeconds": 60,
+              "minNativeReservePct": 10
+            }
+          },
+          {
+            "id": "custom",
+            "label": "Custom",
+            "description": "User-defined configuration. All defaults set to safety minimums; override as needed.",
+            "riskTier": "custom",
+            "protocols": [
+              "saturnswap",
+              "dexhunter"
+            ],
+            "release": {
+              "paper": true,
+              "live": "coming_soon"
+            },
+            "constraints": {
+              "maxPositions": 5,
+              "maxTokenExposurePct": 15,
+              "maxSlippageBps": 100,
+              "dailyLossLimitPct": 5,
+              "cycleIntervalSeconds": 300,
+              "minNativeReservePct": 20
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "description": "Live /ws/v1 exchange. Upgrade carries BOTH the Authorization header (passes the global JWT hook) and ?token= (validated by the handler). Heartbeat frames elided.",
+  "upgrade": {
+    "url": "/ws/v1?token=<volatile>",
+    "headers": {
+      "authorization": "Bearer <volatile>"
+    }
+  },
+  "frames": [
+    {
+      "direction": "down",
+      "frame": {
+        "type": "connected",
+        "connectionId": "<volatile>",
+        "userId": "user_addr_tes",
+        "tier": "premium",
+        "maxSubscriptions": 50,
+        "serverTime": "<volatile>"
+      }
+    },
+    {
+      "direction": "up",
+      "frame": {
+        "type": "subscribe",
+        "id": "msg-1",
+        "channel": "notifications"
+      }
+    },
+    {
+      "direction": "down",
+      "frame": {
+        "type": "subscribed",
+        "id": "msg-1",
+        "channel": "notifications",
+        "data": {
+          "subscriptionId": "<volatile>"
+        },
+        "timestamp": "<volatile>"
+      }
+    },
+    {
+      "direction": "up",
+      "frame": {
+        "type": "subscribe",
+        "id": "msg-2",
+        "channel": "execution:bot-fixture"
+      }
+    },
+    {
+      "direction": "down",
+      "frame": {
+        "type": "subscribed",
+        "id": "msg-2",
+        "channel": "execution:bot-fixture",
+        "data": {
+          "subscriptionId": "<volatile>"
+        },
+        "timestamp": "<volatile>"
+      }
+    },
+    {
+      "direction": "up",
+      "frame": {
+        "type": "unsubscribe",
+        "id": "msg-3",
+        "channel": "execution:bot-fixture"
+      }
+    },
+    {
+      "direction": "down",
+      "frame": {
+        "type": "unsubscribed",
+        "id": "msg-3",
+        "channel": "execution:bot-fixture",
+        "timestamp": "<volatile>"
+      }
+    },
+    {
+      "direction": "up",
+      "frame": {
+        "type": "bogus",
+        "id": "msg-4"
+      }
+    },
+    {
+      "direction": "down",
+      "frame": {
+        "type": "error",
+        "data": {
+          "code": "UNKNOWN_MESSAGE_TYPE",
+          "message": "<volatile>",
+          "relatedMessageId": "msg-4"
+        },
+        "timestamp": "<volatile>"
+      }
+    }
+  ],
+  "missingQueryToken": {
+    "code": 4401,
+    "reason": "Authentication required: provide ?token= query parameter"
+  }
+}

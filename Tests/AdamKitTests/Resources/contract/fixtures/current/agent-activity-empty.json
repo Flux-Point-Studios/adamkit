@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/api/v1/agent/activity",
+    "headers": {
+      "authorization": "Bearer <volatile>"
+    }
+  },
+  "response": {
+    "statusCode": 200,
+    "body": {
+      "data": {
+        "events": []
+      }
+    }
+  }
+}

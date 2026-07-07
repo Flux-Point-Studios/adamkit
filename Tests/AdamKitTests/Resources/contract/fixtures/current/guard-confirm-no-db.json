@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/api/v1/guard/provision/confirm",
+    "headers": {
+      "authorization": "Bearer <volatile>"
+    },
+    "body": {}
+  },
+  "response": {
+    "statusCode": 503,
+    "body": {
+      "error": {
+        "code": "DB_UNAVAILABLE",
+        "message": "<volatile>"
+      }
+    }
+  }
+}

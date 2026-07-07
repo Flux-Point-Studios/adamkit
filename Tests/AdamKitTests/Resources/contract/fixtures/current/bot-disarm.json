@@ -1,0 +1,20 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/api/v1/bot/disarm",
+    "headers": {
+      "authorization": "Bearer <volatile>"
+    },
+    "body": {}
+  },
+  "response": {
+    "statusCode": 200,
+    "body": {
+      "data": {
+        "botId": null,
+        "status": "disarmed",
+        "runtimeConnected": false
+      }
+    }
+  }
+}
