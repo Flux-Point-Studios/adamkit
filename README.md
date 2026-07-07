@@ -107,9 +107,9 @@ CBOR itself.
 
 `swift test` (Swift 6.1+, macOS 14+/Linux). Tests are hermetic: HTTP and
 WebSocket transports are protocol seams (`HTTPTransport`,
-`WebSocketTransport`) with scripted fakes; no network. The same suites run as
-CI on Linux (`swift:6.1` container) and macOS via
-`.github/workflows/adamkit.yml`, alongside the sdk-contract drift check.
+`WebSocketTransport`) with scripted fakes; no network. CI runs the suite in a
+`swift:6.1` container (the `adamkit-swift-test` step in `.woodpecker.yml`);
+the sdk-contract drift check runs in the same pipeline via `pnpm -r run test`.
 
 ## Gateway prerequisites (Phase 0)
 
