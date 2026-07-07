@@ -26,6 +26,16 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
 }
 
 @Suite struct GuardProvisionerTests {
+    private func deployment(botId: String = "bot-1") -> GuardDeployment {
+        GuardDeployment(
+            provision: GuardProvision(
+                unsignedCbor: "84a0a0f5f6", guardAddr: "addr_test1guard",
+                deployTx: String(repeating: "d", count: 64), botId: botId
+            ),
+            bodyHashHex: "ab"
+        )
+    }
+
     /// Provision responses carry real deploy CBOR (a vector transaction), so
     /// the SDK-computed body hash is meaningful end to end.
     private func provisionJSON() throws -> (json: String, txHex: String, bodyHashHex: String) {
@@ -96,7 +106,7 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
         let provisioner = GuardProvisioner(
             api: try await makeAPI(transport), signer: FakeSigner(),
             sleep: { await slept.record($0) })
-        let confirmation = try await provisioner.confirm(botId: "bot-1", attempts: 5)
+        let confirmation = try await provisioner.confirm(deployment(), attempts: 5)
         #expect(confirmation.active)
         #expect(await slept.count() == 2)
     }
@@ -111,9 +121,23 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
             api: try await makeAPI(transport), signer: FakeSigner(), sleep: { _ in })
 
         await #expect(throws: AdamError.self) {
-            _ = try await provisioner.confirm(attempts: 3)
+            _ = try await provisioner.confirm(deployment(), attempts: 3)
         }
         #expect(await transport.requests().count == 3)
+    }
+
+    @Test func provisionSurfacesTheCapturedNoDbError() async throws {
+        let transport = StubHTTPTransport()
+        try await transport.stub(fixture: ContractFiles.fixture("guard-provision-no-db"))
+        let provisioner = GuardProvisioner(
+            api: try await makeAPI(transport), signer: FakeSigner(), sleep: { _ in })
+        do {
+            _ = try await provisioner.requestDeployment(principalAda: 100)
+            Issue.record("expected DB_UNAVAILABLE")
+        } catch let AdamError.api(code, _, statusCode) {
+            #expect(code == "DB_UNAVAILABLE")
+            #expect(statusCode == 503)
+        }
     }
 
     @Test func confirmSurfacesFinalErrorsImmediately() async throws {
@@ -126,7 +150,7 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
             api: try await makeAPI(transport), signer: FakeSigner(), sleep: { _ in })
 
         do {
-            _ = try await provisioner.confirm(attempts: 5)
+            _ = try await provisioner.confirm(deployment(), attempts: 5)
             Issue.record("expected NO_PENDING_GUARD to be final")
         } catch let AdamError.api(code, _, _) {
             #expect(code == "NO_PENDING_GUARD")

@@ -69,21 +69,24 @@ public actor GuardProvisioner {
     }
 
     /// Poll until the chain shows the guard live and the server flips
-    /// autonomy on. `GUARD_NOT_READY` means "not yet" and is retried; every
-    /// other failure is final.
+    /// autonomy on. Confirms the SAME bot the deployment provisioned —
+    /// passing the deployment (not a bare optional) keeps multi-bot users from
+    /// confirming the wrong bot. `GUARD_NOT_READY` means "not yet" and is
+    /// retried; every other failure is final.
     public func confirm(
-        botId: String? = nil,
+        _ deployment: GuardDeployment,
         attempts: Int = 30,
         pollInterval: Duration = .seconds(4)
     ) async throws -> GuardConfirmation {
         struct ConfirmBody: Encodable {
             let botId: String?
         }
+        let body = ConfirmBody(botId: deployment.provision.botId)
         var lastNotReady: AdamError?
         for attempt in 0..<max(attempts, 1) {
             if attempt > 0 { try await sleep(pollInterval) }
             do {
-                return try await api.post("/api/v1/guard/provision/confirm", body: ConfirmBody(botId: botId))
+                return try await api.post("/api/v1/guard/provision/confirm", body: body)
             } catch let error as AdamError {
                 guard case .api("GUARD_NOT_READY", _, _) = error else { throw error }
                 lastNotReady = error

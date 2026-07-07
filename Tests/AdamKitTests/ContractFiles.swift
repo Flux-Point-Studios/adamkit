@@ -9,9 +9,10 @@ import Testing
 enum ContractFiles {
     static var root: URL {
         URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // AdamKitTests
-            .deletingLastPathComponent()  // Tests
-            .deletingLastPathComponent()  // adamkit
+            .deletingLastPathComponent()  // AdamKitTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // adamkit/
+            .deletingLastPathComponent()  // packages/
             .appendingPathComponent("sdk-contract")
     }
 

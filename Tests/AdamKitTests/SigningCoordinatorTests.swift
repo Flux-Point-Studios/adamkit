@@ -281,4 +281,123 @@ private func signaturesListJSON(_ requests: [SignRequest]) throws -> String {
         _ = try await coordinator.reconcile()
         #expect(await coordinator.pending.isEmpty)
     }
+
+    @Test func sameRequestIdWithDifferentBytesNeverOverwritesVerifiedBytes() async throws {
+        // A second sign_required reusing a verified requestId but carrying
+        // different (self-consistent) CBOR must not replace the reviewed bytes.
+        let vectors = try ContractFiles.vector("tx-body.json", as: TxBodyVectors.self)
+        let original = try vectorSignRequest()
+        let swapped = SignRequest(
+            requestId: original.requestId,
+            unsignedCborHex: vectors.cases[1].txHex,
+            bodyHashHex: vectors.cases[1].bodyHashHex,
+            stepId: "s", action: "swap", tradeProtocol: "saturnswap",
+            description: "attacker", rationale: "swap", estimatedValueAda: 1,
+            estimatedFeeAda: 0.1, createdAt: "2026-07-07T00:00:00.000Z"
+        )
+        #expect(original.unsignedCborHex != swapped.unsignedCborHex)
+
+        let transport = StubHTTPTransport()
+        await transport.stub(
+            "POST", "/api/v1/agent/signatures/req-1", status: 200,
+            json: #"{"data":{"requestId":"req-1","status":"approved"}}"#)
+        let signer = FakeSigner()
+        let coordinator = SigningCoordinator(api: try await makeAPI(transport), signer: signer)
+
+        #expect(await coordinator.handle(swappedPush(original)) != nil)
+        // The swap arrives after the user reviewed the first request.
+        #expect(await coordinator.handle(swappedPush(swapped)) == nil)
+
+        try await coordinator.approve("req-1")
+        // The host witnessed the ORIGINAL bytes, not the swapped ones.
+        #expect(await signer.witnessedCborHexes == [original.unsignedCborHex])
+    }
+
+    @Test func concurrentApproveWitnessesOnlyOnce() async throws {
+        let transport = StubHTTPTransport()
+        let request = try vectorSignRequest()
+        await transport.stub(
+            "GET", "/api/v1/agent/signatures", status: 200, json: try signaturesListJSON([request]))
+        await transport.stub(
+            "POST", "/api/v1/agent/signatures/req-1", status: 200,
+            json: #"{"data":{"requestId":"req-1","status":"approved"}}"#)
+        // A signer that suspends so both approve() calls overlap before either
+        // resolves — the .signing guard must still admit exactly one.
+        let signer = GatedSigner()
+        let coordinator = SigningCoordinator(api: try await makeAPI(transport), signer: signer)
+        _ = try await coordinator.reconcile()
+
+        async let first = try? await coordinator.approve("req-1")
+        async let second = try? await coordinator.approve("req-1")
+        await signer.release()
+        _ = await (first, second)
+
+        #expect(await signer.witnessCount() == 1)
+        // Exactly one submit POST reached the gateway.
+        #expect(await transport.requests().filter { $0.method == "POST" }.count == 1)
+    }
+
+    @Test func reconcileEvictsResolvedRequestsRegardlessOfState() async throws {
+        let transport = StubHTTPTransport()
+        let request = try vectorSignRequest()
+        await transport.stub(
+            "GET", "/api/v1/agent/signatures", status: 200, json: try signaturesListJSON([request]))
+        await transport.stub(
+            "POST", "/api/v1/agent/signatures/req-1", status: 200,
+            json: #"{"data":{"requestId":"req-1","status":"declined"}}"#)
+        await transport.stub(
+            "GET", "/api/v1/agent/signatures", status: 200, json: try signaturesListJSON([]))
+        let coordinator = SigningCoordinator(
+            api: try await makeAPI(transport), signer: FakeSigner())
+        _ = try await coordinator.reconcile()
+        _ = try await coordinator.decline("req-1")
+        #expect(await coordinator.state(of: "req-1") == .declined)
+        _ = try await coordinator.reconcile()
+        // The declined (non-verified) entry is gone, not accumulated forever.
+        #expect(await coordinator.state(of: "req-1") == nil)
+    }
+}
+
+/// A signer whose witness call blocks until released — lets a test overlap two
+/// concurrent approve() calls before either resolves.
+actor GatedSigner: AdamHostSigner {
+    private var gate: CheckedContinuation<Void, Never>?
+    private var entryWaiter: CheckedContinuation<Void, Never>?
+    private var entered = false
+    private var witnessed = 0
+
+    func signAuthChallenge(_ challenge: AuthChallenge, walletAddress: String) async throws -> AuthSignature {
+        AuthSignature(signatureHex: "00", publicKeyHex: "00")
+    }
+
+    func witnessTransaction(
+        unsignedCborHex: String, bodyHashHex: String, context: SigningContext
+    ) async throws -> TransactionWitness {
+        witnessed += 1
+        entered = true
+        entryWaiter?.resume()
+        entryWaiter = nil
+        await withCheckedContinuation { gate = $0 }
+        return .vkey(vkeyHex: String(repeating: "a", count: 64), signatureHex: String(repeating: "b", count: 128))
+    }
+
+    /// Wait until a witness call has parked, then let it proceed.
+    func release() async {
+        if !entered {
+            await withCheckedContinuation { entryWaiter = $0 }
+        }
+        gate?.resume()
+        gate = nil
+    }
+
+    func witnessCount() -> Int { witnessed }
+}
+
+private func swappedPush(_ r: SignRequest) -> RealtimeEvent {
+    .signRequired(
+        WsSignRequired(
+            requestId: r.requestId, unsignedCborHex: r.unsignedCborHex, bodyHashHex: r.bodyHashHex,
+            stepId: r.stepId, action: r.action, tradeProtocol: r.tradeProtocol,
+            description: r.description, rationale: r.rationale, estimatedValueAda: r.estimatedValueAda,
+            estimatedFeeAda: r.estimatedFeeAda, createdAt: 1_783_400_000_000))
 }

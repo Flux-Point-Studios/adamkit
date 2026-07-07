@@ -90,6 +90,46 @@ private func liveSession() async throws -> AdamSession {
         #expect(push.createdAt == 1_783_400_000_000)
     }
 
+    /// The captured pushes come from the real AgentBridge, so a gateway field
+    /// rename fails the drift test AND this decode — the funds-critical payload
+    /// shape is no longer pinned only by hand-written literals.
+    @Test func decodesGatewayCapturedPushes() throws {
+        struct PushFixture: Decodable {
+            struct Entry: Decodable {
+                let event: String
+                let payload: JSONValue
+            }
+            let pushes: [Entry]
+        }
+        let url = ContractFiles.root.appendingPathComponent("fixtures/current/ws-pushes.json")
+        let fixture = try JSONDecoder().decode(PushFixture.self, from: Data(contentsOf: url))
+
+        for entry in fixture.pushes {
+            let text = String(decoding: try JSONEncoder().encode(entry.payload), as: UTF8.self)
+            let decoded = try #require(AdamRealtime.decode(text), "\(entry.event) must decode")
+            switch entry.event {
+            case "sign_required":
+                guard case let .signRequired(push) = decoded else {
+                    Issue.record("expected signRequired, got \(decoded)")
+                    continue
+                }
+                #expect(!push.requestId.isEmpty)
+                #expect(!push.unsignedCborHex.isEmpty)
+                #expect(!push.bodyHashHex.isEmpty)
+                #expect(push.tradeProtocol == "saturnswap")
+            case "approval_required":
+                guard case let .approvalRequired(push) = decoded else {
+                    Issue.record("expected approvalRequired, got \(decoded)")
+                    continue
+                }
+                #expect(!push.approval.planId.isEmpty)
+                #expect(push.approval.status == "pending")
+            default:
+                Issue.record("unexpected push event \(entry.event)")
+            }
+        }
+    }
+
     @Test func decodesApprovalRequiredPush() throws {
         let text = """
             {"channel":"notifications","event":"approval_required","data":{"id":"approval-p1",\

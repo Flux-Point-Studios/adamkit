@@ -120,6 +120,33 @@ private func makeSession(
             _ = try await session.validAccessToken()
         }
     }
+
+    @Test func concurrentRefreshCoalescesToASinglePost() async throws {
+        // The gateway rotates refresh tokens; a second concurrent refresh with
+        // the consumed token would 401 and wipe the session. Single-flight must
+        // send exactly one POST. The refresh stub is non-sticky, so a second
+        // POST would error with 'no stub' — proving coalescing.
+        let transport = StubHTTPTransport()
+        await transport.stub(
+            "POST", "/api/v1/auth/refresh", status: 200,
+            json: #"{"data":{"accessToken":"fresh","refreshToken":"rotated","expiresIn":3600}}"#)
+        let store = InMemoryTokenStore()
+        try await store.save(
+            StoredTokens(
+                accessToken: "stale", refreshToken: "old", expiresAt: Date(),
+                walletAddress: "addr_test1x", deviceId: "dev"
+            ))
+        let session = makeSession(transport, store: store)
+
+        async let a = try await session.validAccessToken()
+        async let b = try await session.validAccessToken()
+        let (tokenA, tokenB) = try await (a, b)
+
+        #expect(tokenA == "fresh")
+        #expect(tokenB == "fresh")
+        #expect(await transport.requests().filter { $0.path == "/api/v1/auth/refresh" }.count == 1)
+        #expect(try await store.load()?.refreshToken == "rotated")
+    }
 }
 
 @Suite struct AuthorizedClientTests {

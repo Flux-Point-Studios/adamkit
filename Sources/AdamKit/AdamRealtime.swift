@@ -45,9 +45,15 @@ public actor AdamRealtime {
     private var connection: (any WebSocketConnection)?
     private var runner: Task<Void, Never>?
     private var nextMessageId = 0
-    private var continuation: AsyncStream<RealtimeEvent>.Continuation?
+    /// Bumped on every start()/stop(); a run loop only mutates shared state or
+    /// emits events while its captured generation is still current, so a
+    /// superseded runner can't clobber the connection or the fresh stream.
+    private var generation = 0
 
     private static let maxBackoff = Duration.seconds(30)
+    /// A connection must stay up at least this long to count as healthy and
+    /// reset the backoff — otherwise a handshake-then-drop server storms.
+    private static let healthyResetInterval = Duration.seconds(30)
 
     public init(
         config: AdamConfig,
@@ -64,20 +70,20 @@ public actor AdamRealtime {
     /// Start (or restart) the socket. Events arrive on the returned stream;
     /// a fresh call replaces any previous stream.
     public func start() -> AsyncStream<RealtimeEvent> {
+        generation += 1
+        let myGeneration = generation
         runner?.cancel()
         let (stream, continuation) = AsyncStream.makeStream(of: RealtimeEvent.self)
-        self.continuation = continuation
-        runner = Task { await run() }
+        runner = Task { await run(generation: myGeneration, continuation: continuation) }
         return stream
     }
 
     public func stop() async {
+        generation += 1
         runner?.cancel()
         runner = nil
         await connection?.close()
         connection = nil
-        continuation?.finish()
-        continuation = nil
     }
 
     public func subscribe(to channel: String) async {
@@ -98,33 +104,42 @@ public actor AdamRealtime {
         try await connection.send(String(decoding: encoded, as: UTF8.self))
     }
 
-    private func run() async {
+    private func run(
+        generation myGeneration: Int,
+        continuation: AsyncStream<RealtimeEvent>.Continuation
+    ) async {
+        let clock = ContinuousClock()
         var attempt = 0
-        while !Task.isCancelled {
+        while !Task.isCancelled && myGeneration == generation {
             if attempt > 0 {
-                continuation?.yield(.reconnecting(attempt: attempt))
+                continuation.yield(.reconnecting(attempt: attempt))
                 let backoff = min(Duration.seconds(1) * (1 << min(attempt - 1, 5)), Self.maxBackoff)
                 guard (try? await sleep(backoff)) != nil else { break }
             }
             attempt += 1
+            var connectedAt: ContinuousClock.Instant?
             do {
                 let token = try await session.validAccessToken()
                 var components = URLComponents(url: config.wsURL, resolvingAgainstBaseURL: false)!
                 components.path += "/ws/v1"
                 components.queryItems = [URLQueryItem(name: "token", value: token)]
-                let connection = try await transport.connect(
+                let conn = try await transport.connect(
                     url: components.url!,
                     headers: ["authorization": "Bearer \(token)"]
                 )
-                self.connection = connection
+                guard myGeneration == generation else {
+                    await conn.close()
+                    break
+                }
+                connection = conn
                 for channel in desiredChannels {
                     try await sendFrame(type: "subscribe", channel: channel)
                 }
-                for try await text in connection.incoming {
-                    if Task.isCancelled { break }
+                for try await text in conn.incoming {
+                    if Task.isCancelled || myGeneration != generation { break }
                     if let event = Self.decode(text) {
-                        continuation?.yield(event)
-                        if case .connected = event { attempt = 0 }
+                        continuation.yield(event)
+                        if case .connected = event { connectedAt = clock.now }
                     }
                 }
             } catch let error as AdamError where error == .notAuthenticated {
@@ -132,10 +147,16 @@ public actor AdamRealtime {
             } catch {
                 // fall through to backoff
             }
+            guard myGeneration == generation else { break }
             connection = nil
-            continuation?.yield(.disconnected)
+            continuation.yield(.disconnected)
+            // Reset backoff only after a connection that stayed healthy — a
+            // handshake immediately followed by a drop keeps escalating.
+            if let connectedAt, clock.now - connectedAt >= Self.healthyResetInterval {
+                attempt = 0
+            }
         }
-        continuation?.finish()
+        continuation.finish()
     }
 
     static func decode(_ text: String) -> RealtimeEvent? {

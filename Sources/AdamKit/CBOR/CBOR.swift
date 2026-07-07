@@ -78,8 +78,19 @@ public enum CBOR {
         return bytes[bytes.startIndex + offset]
     }
 
+    /// Cap on nesting depth. A server-supplied `81 81 81 …` (or chained tags)
+    /// otherwise recurses one stack frame per byte and overflows the stack —
+    /// a crash on a body far smaller than any real Cardano transaction.
+    /// Conway transactions nest only a handful of levels deep.
+    static let maxDepth = 128
+
     /// Total byte length of the item starting at `offset`.
     public static func itemLength(_ bytes: Data, at offset: Int) throws -> Int {
+        try itemLength(bytes, at: offset, depth: 0)
+    }
+
+    private static func itemLength(_ bytes: Data, at offset: Int, depth: Int) throws -> Int {
+        guard depth <= maxDepth else { throw CBORError.unsupportedShape("nesting exceeds \(maxDepth)") }
         let h = try readHeader(bytes, offset)
         switch h.major {
         case 0, 1:
@@ -98,43 +109,48 @@ public enum CBOR {
             }
             var len = h.headerBytes
             while try byteAt(bytes, offset + len) != 0xff {
-                len += try itemLength(bytes, at: offset + len)
+                len += try itemLength(bytes, at: offset + len, depth: depth + 1)
             }
             return len + 1
         case 4:
             var len = h.headerBytes
             if h.indefinite {
                 while try byteAt(bytes, offset + len) != 0xff {
-                    len += try itemLength(bytes, at: offset + len)
+                    len += try itemLength(bytes, at: offset + len, depth: depth + 1)
                 }
                 return len + 1
             }
             for _ in 0..<h.arg {
-                len += try itemLength(bytes, at: offset + len)
+                len += try itemLength(bytes, at: offset + len, depth: depth + 1)
             }
             return len
         case 5:
             var len = h.headerBytes
             if h.indefinite {
                 while try byteAt(bytes, offset + len) != 0xff {
-                    len += try itemLength(bytes, at: offset + len)
-                    len += try itemLength(bytes, at: offset + len)
+                    len += try itemLength(bytes, at: offset + len, depth: depth + 1)
+                    len += try itemLength(bytes, at: offset + len, depth: depth + 1)
                 }
                 return len + 1
             }
             for _ in 0..<h.arg {
-                len += try itemLength(bytes, at: offset + len)
-                len += try itemLength(bytes, at: offset + len)
+                len += try itemLength(bytes, at: offset + len, depth: depth + 1)
+                len += try itemLength(bytes, at: offset + len, depth: depth + 1)
             }
             return len
         default: // major 6
-            return h.headerBytes + (try itemLength(bytes, at: offset + h.headerBytes))
+            return h.headerBytes + (try itemLength(bytes, at: offset + h.headerBytes, depth: depth + 1))
         }
     }
 
     /// Decode the single item at `offset`, returning it and the offset just
     /// past its end.
     public static func decodeItem(_ bytes: Data, at offset: Int) throws -> (CBORValue, Int) {
+        try decodeItem(bytes, at: offset, depth: 0)
+    }
+
+    private static func decodeItem(_ bytes: Data, at offset: Int, depth: Int) throws -> (CBORValue, Int) {
+        guard depth <= maxDepth else { throw CBORError.unsupportedShape("nesting exceeds \(maxDepth)") }
         let h = try readHeader(bytes, offset)
         let payloadStart = offset + h.headerBytes
 
@@ -181,14 +197,14 @@ public enum CBOR {
             var cursor = payloadStart
             if h.indefinite {
                 while try byteAt(bytes, cursor) != 0xff {
-                    let (item, next) = try decodeItem(bytes, at: cursor)
+                    let (item, next) = try decodeItem(bytes, at: cursor, depth: depth + 1)
                     items.append(item)
                     cursor = next
                 }
                 return (.array(items), cursor + 1)
             }
             for _ in 0..<h.arg {
-                let (item, next) = try decodeItem(bytes, at: cursor)
+                let (item, next) = try decodeItem(bytes, at: cursor, depth: depth + 1)
                 items.append(item)
                 cursor = next
             }
@@ -198,22 +214,22 @@ public enum CBOR {
             var cursor = payloadStart
             if h.indefinite {
                 while try byteAt(bytes, cursor) != 0xff {
-                    let (key, afterKey) = try decodeItem(bytes, at: cursor)
-                    let (value, afterValue) = try decodeItem(bytes, at: afterKey)
+                    let (key, afterKey) = try decodeItem(bytes, at: cursor, depth: depth + 1)
+                    let (value, afterValue) = try decodeItem(bytes, at: afterKey, depth: depth + 1)
                     pairs.append((key, value))
                     cursor = afterValue
                 }
                 return (.map(pairs), cursor + 1)
             }
             for _ in 0..<h.arg {
-                let (key, afterKey) = try decodeItem(bytes, at: cursor)
-                let (value, afterValue) = try decodeItem(bytes, at: afterKey)
+                let (key, afterKey) = try decodeItem(bytes, at: cursor, depth: depth + 1)
+                let (value, afterValue) = try decodeItem(bytes, at: afterKey, depth: depth + 1)
                 pairs.append((key, value))
                 cursor = afterValue
             }
             return (.map(pairs), cursor)
         case 6:
-            let (inner, end) = try decodeItem(bytes, at: payloadStart)
+            let (inner, end) = try decodeItem(bytes, at: payloadStart, depth: depth + 1)
             return (.tagged(h.arg, inner), end)
         default: // major 7
             if h.indefinite { throw CBORError.unexpectedBreak }

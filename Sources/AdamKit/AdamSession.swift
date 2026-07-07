@@ -22,13 +22,19 @@ struct LogoutRequestBody: Encodable {
 }
 
 /// Session lifecycle: challenge-response login through the host signer,
-/// token persistence, and single-flight refresh (this is an actor, so
-/// concurrent callers of `validAccessToken` serialize on one refresh).
+/// token persistence, and refresh coalesced onto one in-flight task so
+/// concurrent callers never double-spend a rotating refresh token.
 public actor AdamSession {
     private let client: AdamClient
     private let signer: any AdamHostSigner
     private let tokenStore: any TokenStore
     private let now: @Sendable () -> Date
+
+    /// The in-flight refresh, if any. Concurrent callers await this same task
+    /// instead of each POSTing /auth/refresh — the gateway rotates refresh
+    /// tokens, so a second concurrent refresh with the now-consumed token 401s
+    /// and would wipe the freshly rotated session.
+    private var inflightRefresh: Task<StoredTokens, Error>?
 
     /// Refresh this long before the access token actually expires.
     private static let expirySlack: TimeInterval = 60
@@ -101,7 +107,24 @@ public actor AdamSession {
         return try await refresh(stored).accessToken
     }
 
+    /// Single-flight: the first caller creates the refresh task; everyone
+    /// arriving while it runs awaits the same result.
     private func refresh(_ stored: StoredTokens) async throws -> StoredTokens {
+        if let inflight = inflightRefresh {
+            return try await inflight.value
+        }
+        let task = Task<StoredTokens, Error> { try await self.performRefresh(stored) }
+        inflightRefresh = task
+        defer { inflightRefresh = nil }
+        return try await task.value
+    }
+
+    private func performRefresh(_ stored: StoredTokens) async throws -> StoredTokens {
+        // A concurrent caller may have rotated already while we waited to run;
+        // re-read and short-circuit if the stored refresh token has changed.
+        if let current = try await tokenStore.load(), current.refreshToken != stored.refreshToken {
+            return current
+        }
         let result: RefreshResult
         do {
             result = try await client.post(

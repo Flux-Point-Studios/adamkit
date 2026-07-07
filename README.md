@@ -111,6 +111,25 @@ WebSocket transports are protocol seams (`HTTPTransport`,
 CI on Linux (`swift:6.1` container) and macOS via
 `.github/workflows/adamkit.yml`, alongside the sdk-contract drift check.
 
+## Gateway prerequisites (Phase 0)
+
+AdamKit is written to the designed contract. Three things must land in
+`packages/api-gateway` before it can talk to a production (non-`DEV_MODE`)
+gateway — the Phase 0 hardening from the integration plan:
+
+- **Real CIP-30 login verification.** The current `/api/v1/auth/login` verifier
+  is demo-grade; it must verify the COSE_Sign1 the SDK's `signAuthChallenge`
+  produces against the wallet's key, or login only succeeds under `DEV_MODE`.
+- **`partnerId` persistence.** The SDK sends `partnerId` on login; the gateway
+  must accept and store it (a `partners` table + `users.partnerId`) for
+  attribution to exist. Until then it is silently ignored, harmlessly.
+- **Server-side logout.** `logout()` posts the refresh token; the gateway must
+  revoke that session even when the access token has expired, or a logged-out
+  refresh token stays valid for its full TTL.
+
+These are gateway changes, not SDK changes — AdamKit already speaks the
+contract they complete.
+
 ## Repo placement
 
 AdamKit lives in this monorepo next to the gateway and the contract artifacts

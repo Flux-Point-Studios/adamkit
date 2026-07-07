@@ -4,6 +4,9 @@ import Foundation
 public enum SignRequestState: Sendable, Equatable {
     /// Bind-to-bytes verified; safe to present to the user.
     case verified
+    /// A decision is in flight (host is witnessing or the POST is pending).
+    /// Blocks a second approve/decline on the same request.
+    case signing
     /// Witness submitted; the runtime re-verifies and broadcasts.
     case submitted(status: String)
     case declined
@@ -39,13 +42,14 @@ public actor SigningCoordinator {
                 verified.append(request)
             }
         }
-        // Requests the server no longer lists are resolved or expired.
+        // Requests the server no longer lists are resolved or expired — evict
+        // them (any state) so they don't accumulate and so a reused requestId
+        // can be re-ingested later. An in-flight `.signing` request is spared:
+        // its approve() call is mid-submit and still owns the entry.
         let live = Set(list.signatures.map(\.requestId))
-        for requestId in requests.keys where !live.contains(requestId) {
-            if states[requestId] == .verified {
-                requests.removeValue(forKey: requestId)
-                states.removeValue(forKey: requestId)
-            }
+        for requestId in requests.keys.filter({ !live.contains($0) && states[$0] != .signing }) {
+            requests.removeValue(forKey: requestId)
+            states.removeValue(forKey: requestId)
         }
         return verified
     }
@@ -82,51 +86,77 @@ public actor SigningCoordinator {
         states[requestId]
     }
 
-    /// Ask the host to witness, downgrade to the wire form, submit.
+    /// Ask the host to witness, downgrade to the wire form, submit. The state
+    /// flips to `.signing` synchronously before the first await, so a second
+    /// concurrent approve (or a decline) on the same request is refused rather
+    /// than double-prompting the host or racing the submit.
     public func approve(_ requestId: String) async throws -> SignRequestState {
         guard let request = requests[requestId], states[requestId] == .verified else {
             throw AdamError.contract("approve on unknown or non-verified request \(requestId)")
         }
-        let witness = try await signer.witnessTransaction(
-            unsignedCborHex: request.unsignedCborHex,
-            bodyHashHex: request.bodyHashHex,
-            context: .trade(request)
-        )
-        let vkeyWitness = try witness.vkeyWitness()
-
-        struct SubmitBody: Encodable {
-            let approved: Bool
-            let vkeyHex: String
-            let signatureHex: String
-        }
-        let status: DecisionStatus = try await api.post(
-            "/api/v1/agent/signatures/\(requestId)",
-            body: SubmitBody(
-                approved: true,
-                vkeyHex: vkeyWitness.vkeyHex,
-                signatureHex: vkeyWitness.signatureHex
+        states[requestId] = .signing
+        do {
+            let witness = try await signer.witnessTransaction(
+                unsignedCborHex: request.unsignedCborHex,
+                bodyHashHex: request.bodyHashHex,
+                context: .trade(request)
             )
-        )
-        let state = SignRequestState.submitted(status: status.status)
-        states[requestId] = state
-        return state
+            let vkeyWitness = try witness.vkeyWitness()
+
+            struct SubmitBody: Encodable {
+                let approved: Bool
+                let vkeyHex: String
+                let signatureHex: String
+            }
+            let status: DecisionStatus = try await api.post(
+                "/api/v1/agent/signatures/\(requestId)",
+                body: SubmitBody(
+                    approved: true,
+                    vkeyHex: vkeyWitness.vkeyHex,
+                    signatureHex: vkeyWitness.signatureHex
+                )
+            )
+            let state = SignRequestState.submitted(status: status.status)
+            states[requestId] = state
+            return state
+        } catch {
+            states[requestId] = .verified
+            throw error
+        }
     }
 
     public func decline(_ requestId: String) async throws -> SignRequestState {
+        guard states[requestId] == .verified else {
+            throw AdamError.contract("decline on unknown or non-verified request \(requestId)")
+        }
+        states[requestId] = .signing
         struct DeclineBody: Encodable {
             let approved: Bool
         }
-        let _: DecisionStatus = try await api.post(
-            "/api/v1/agent/signatures/\(requestId)",
-            body: DeclineBody(approved: false)
-        )
-        states[requestId] = .declined
-        return .declined
+        do {
+            let _: DecisionStatus = try await api.post(
+                "/api/v1/agent/signatures/\(requestId)",
+                body: DeclineBody(approved: false)
+            )
+            states[requestId] = .declined
+            return .declined
+        } catch {
+            states[requestId] = .verified
+            throw error
+        }
     }
 
+    /// A requestId is bound to the first bytes seen under it. A later message
+    /// reusing the id with DIFFERENT bytes is refused, never an overwrite —
+    /// otherwise a runtime could swap the CBOR of a request the user already
+    /// reviewed. Idempotent re-ingest of identical bytes (every reconcile
+    /// re-lists live requests) returns the existing state.
     private func ingest(_ request: SignRequest) -> SignRequestState {
-        if let existing = states[request.requestId], existing != .verified {
-            return existing
+        if let stored = requests[request.requestId] {
+            if stored.unsignedCborHex != request.unsignedCborHex {
+                return states[request.requestId] ?? .invalid(reason: "requestId reused with different bytes")
+            }
+            return states[request.requestId] ?? Self.verify(request)
         }
         let state = Self.verify(request)
         requests[request.requestId] = request
