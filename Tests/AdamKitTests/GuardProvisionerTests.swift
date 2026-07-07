@@ -140,6 +140,51 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
         }
     }
 
+    @Test func statusDecodesTheGuardState() async throws {
+        let transport = StubHTTPTransport()
+        await transport.stub(
+            "GET", "/api/v1/guard/status", status: 200,
+            json: #"{"data":{"status":"active","guardAddr":"addr_test1guard","autonomousGuardMode":true,"sweepPending":false,"caps":{"perTxCapAda":20,"dailyCapAda":30,"minPrincipalAda":5,"maxSpends":10},"expiry":4000000000000,"botId":"bot-1"}}"#)
+        let provisioner = GuardProvisioner(
+            api: try await makeAPI(transport), signer: FakeSigner(), sleep: { _ in })
+        let status = try await provisioner.status()
+        #expect(status.status == "active")
+        #expect(status.guardAddr == "addr_test1guard")
+        #expect(status.caps?.perTxCapAda == 20)
+        #expect(status.caps?.maxSpends == 10)
+    }
+
+    @Test func sweepWitnessesTheServerCborAndSubmits() async throws {
+        let vectors = try ContractFiles.vector("tx-body.json", as: TxBodyVectors.self)
+        let tx = vectors.cases[0]
+        let transport = StubHTTPTransport()
+        await transport.stub(
+            "POST", "/api/v1/guard/sweep", status: 200,
+            json: """
+                {"data":{"unsignedCbor":"\(tx.txHex)","guardAddr":"addr_test1guard","botId":"bot-1"}}
+                """)
+        await transport.stub(
+            "POST", "/api/v1/guard/sweep/submit", status: 200,
+            json: #"{"data":{"sweepTx":"sweep_tx_hash"}}"#)
+
+        let witnessVectors = try ContractFiles.vector("witness-set.json", as: WitnessSetVectors.self)
+        let single = try #require(witnessVectors.cases.first { $0.expected.count == 1 })
+        let signer = FakeSigner()
+        await signer.setWitness(.witnessSet(cborHex: single.witnessSetHex))
+
+        let provisioner = GuardProvisioner(api: try await makeAPI(transport), signer: signer, sleep: { _ in })
+        let sweep = try await provisioner.requestSweep()
+        #expect(sweep.bodyHashHex == tx.bodyHashHex)
+        #expect(sweep.guardAddr == "addr_test1guard")
+
+        let sweepTx = try await provisioner.signAndSubmitSweep(sweep)
+        #expect(sweepTx == "sweep_tx_hash")
+        #expect(await signer.witnessedBodyHashes == [tx.bodyHashHex])
+        let submit = try #require(await transport.requests().last?.bodyJSON())
+        #expect(submit["vkeyHex"] == .string(single.expected[0].vkeyHex))
+        #expect(submit["botId"] == .string("bot-1"))
+    }
+
     @Test func confirmSurfacesFinalErrorsImmediately() async throws {
         let transport = StubHTTPTransport()
         await transport.stub(

@@ -25,6 +25,8 @@ public enum TransactionWitness: Sendable {
 public enum SigningContext: Sendable {
     case trade(SignRequest)
     case guardDeploy(GuardProvision)
+    /// Owner withdrawal: returns all guard funds and closes the guard.
+    case guardSweep(GuardSweep)
 }
 
 /// The entire custody seam. AdamKit never sees key material: the host signs

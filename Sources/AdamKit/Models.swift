@@ -227,6 +227,43 @@ public struct GuardConfirmation: Sendable, Codable, Equatable {
     public let guardAddr: String
 }
 
+public struct GuardCaps: Sendable, Codable, Equatable {
+    public let perTxCapAda: Double
+    public let dailyCapAda: Double
+    public let minPrincipalAda: Double
+    public let maxSpends: Double
+}
+
+/// The persisted guard's state. `status` is `none`, `pending`, or `active`.
+public struct GuardStatus: Sendable, Codable, Equatable {
+    public let status: String
+    public let guardAddr: String?
+    public let autonomousGuardMode: Bool?
+    public let sweepPending: Bool?
+    public let caps: GuardCaps?
+    public let expiry: Double?
+    public let botId: String?
+}
+
+/// An owner sweep the server built and the owner must witness to withdraw all
+/// guard funds and permanently close the guard.
+public struct GuardSweep: Sendable, Equatable {
+    public let unsignedCbor: String
+    public let guardAddr: String
+    public let botId: String
+    public let bodyHashHex: String
+}
+
+struct GuardSweepResponse: Codable {
+    let unsignedCbor: String
+    let guardAddr: String
+    let botId: String
+}
+
+struct GuardSweepSubmitResult: Codable {
+    let sweepTx: String
+}
+
 // MARK: - Realtime payloads
 
 /// `sign_required` as pushed on the `notifications` channel (`createdAt` is

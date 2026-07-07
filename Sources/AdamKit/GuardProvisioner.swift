@@ -94,4 +94,57 @@ public actor GuardProvisioner {
         }
         throw lastNotReady ?? AdamError.contract("guard confirm exhausted attempts without a response")
     }
+
+    /// The persisted guard state (status, caps, expiry) for the current bot.
+    public func status(botId: String? = nil) async throws -> GuardStatus {
+        let query = botId.map { [("botId", $0)] } ?? []
+        return try await api.get("/api/v1/guard/status", query: query)
+    }
+
+    /// Build the owner sweep tx — the unilateral withdraw-and-revoke. The body
+    /// hash is computed from the server CBOR; the host must decode it and show
+    /// the user that all funds return to their own address before signing.
+    public func requestSweep(botId: String? = nil) async throws -> GuardSweep {
+        struct SweepBody: Encodable {
+            let botId: String?
+        }
+        let sweep: GuardSweepResponse = try await api.post(
+            "/api/v1/guard/sweep",
+            body: SweepBody(botId: botId)
+        )
+        let tx = try Data(hexString: sweep.unsignedCbor)
+        let bodyHashHex = try CardanoTx.bodyHash(tx).hexString
+        return GuardSweep(
+            unsignedCbor: sweep.unsignedCbor,
+            guardAddr: sweep.guardAddr,
+            botId: sweep.botId,
+            bodyHashHex: bodyHashHex
+        )
+    }
+
+    /// Witness the sweep with the owner key and broadcast. Returns the sweep
+    /// transaction hash; the guard is closed on-chain.
+    public func signAndSubmitSweep(_ sweep: GuardSweep) async throws -> String {
+        let witness = try await signer.witnessTransaction(
+            unsignedCborHex: sweep.unsignedCbor,
+            bodyHashHex: sweep.bodyHashHex,
+            context: .guardSweep(sweep)
+        )
+        let vkeyWitness = try witness.vkeyWitness()
+
+        struct SubmitBody: Encodable {
+            let botId: String?
+            let vkeyHex: String
+            let signatureHex: String
+        }
+        let result: GuardSweepSubmitResult = try await api.post(
+            "/api/v1/guard/sweep/submit",
+            body: SubmitBody(
+                botId: sweep.botId,
+                vkeyHex: vkeyWitness.vkeyHex,
+                signatureHex: vkeyWitness.signatureHex
+            )
+        )
+        return result.sweepTx
+    }
 }
