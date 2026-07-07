@@ -5,7 +5,7 @@ import Testing
 
 private let testConfig = AdamConfig(
     baseURL: URL(string: "https://gateway.test")!,
-    network: .preprod,
+    network: .preprod
 )
 
 private func makeSession(
@@ -16,7 +16,7 @@ private func makeSession(
     AdamSession(
         client: AdamClient(config: testConfig, transport: transport),
         signer: signer,
-        tokenStore: store,
+        tokenStore: store
     )
 }
 
@@ -67,7 +67,7 @@ private func makeSession(
         let transport = StubHTTPTransport()
         await transport.stub(
             "POST", "/api/v1/auth/refresh", status: 200,
-            json: #"{"data":{"accessToken":"fresh","refreshToken":"rotated","expiresIn":3600}}"#,
+            json: #"{"data":{"accessToken":"fresh","refreshToken":"rotated","expiresIn":3600}}"#
         )
         let store = InMemoryTokenStore()
         try await store.save(
@@ -76,7 +76,7 @@ private func makeSession(
                 refreshToken: "old-refresh",
                 expiresAt: Date(),
                 walletAddress: "addr_test1x",
-                deviceId: "dev",
+                deviceId: "dev"
             ))
         let session = makeSession(transport, store: store)
 
@@ -95,7 +95,7 @@ private func makeSession(
         let transport = StubHTTPTransport()
         await transport.stub(
             "POST", "/api/v1/auth/refresh", status: 401,
-            json: #"{"error":{"code":"REFRESH_INVALID","message":"expired","requestId":"r"}}"#,
+            json: #"{"error":{"code":"REFRESH_INVALID","message":"expired","requestId":"r"}}"#
         )
         let store = InMemoryTokenStore()
         try await store.save(
@@ -104,7 +104,7 @@ private func makeSession(
                 refreshToken: "dead",
                 expiresAt: Date(),
                 walletAddress: "addr_test1x",
-                deviceId: "dev",
+                deviceId: "dev"
             ))
         let session = makeSession(transport, store: store)
 
@@ -133,12 +133,12 @@ private func makeSession(
                 refreshToken: "refresh",
                 expiresAt: Date().addingTimeInterval(3600),
                 walletAddress: "addr_test1x",
-                deviceId: "dev",
+                deviceId: "dev"
             ))
         let client = AdamClient(config: testConfig, transport: transport)
         return AuthorizedClient(
             client: client,
-            session: AdamSession(client: client, signer: FakeSigner(), tokenStore: store),
+            session: AdamSession(client: client, signer: FakeSigner(), tokenStore: store)
         )
     }
 
@@ -146,15 +146,15 @@ private func makeSession(
         let transport = StubHTTPTransport()
         await transport.stub(
             "GET", "/api/v1/bot/status", status: 401,
-            json: #"{"error":{"code":"AUTH_REQUIRED","message":"expired","requestId":"r"}}"#,
+            json: #"{"error":{"code":"AUTH_REQUIRED","message":"expired","requestId":"r"}}"#
         )
         await transport.stub(
             "POST", "/api/v1/auth/refresh", status: 200,
-            json: #"{"data":{"accessToken":"fresh","refreshToken":"rotated","expiresIn":3600}}"#,
+            json: #"{"data":{"accessToken":"fresh","refreshToken":"rotated","expiresIn":3600}}"#
         )
         await transport.stub(
             "GET", "/api/v1/bot/status", status: 200,
-            json: #"{"data":{"status":"disarmed","runtimeConnected":false}}"#,
+            json: #"{"data":{"status":"disarmed","runtimeConnected":false}}"#
         )
         let api = try await authorizedPair(transport)
 

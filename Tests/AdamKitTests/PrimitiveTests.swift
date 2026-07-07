@@ -57,7 +57,7 @@ extension Array {
         for item in vectors.truncated {
             let bytes = try Data(hexString: item.cborHex)
             #expect(throws: CBORError.self, "\(item.name)") {
-                _ = try CardanoTx.extractBodyBytes(bytes)
+                _ = try CBOR.itemLength(bytes, at: 0)
             }
         }
     }

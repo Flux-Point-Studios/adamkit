@@ -35,7 +35,7 @@ public actor GuardProvisioner {
         }
         let provision: GuardProvision = try await api.post(
             "/api/v1/guard/provision",
-            body: ProvisionBody(principalAda: principalAda, botId: botId),
+            body: ProvisionBody(principalAda: principalAda, botId: botId)
         )
         let tx = try Data(hexString: provision.unsignedCbor)
         let bodyHashHex = try CardanoTx.bodyHash(tx).hexString
@@ -48,7 +48,7 @@ public actor GuardProvisioner {
         let witness = try await signer.witnessTransaction(
             unsignedCborHex: deployment.provision.unsignedCbor,
             bodyHashHex: deployment.bodyHashHex,
-            context: .guardDeploy(deployment.provision),
+            context: .guardDeploy(deployment.provision)
         )
         let vkeyWitness = try witness.vkeyWitness()
 
@@ -62,8 +62,8 @@ public actor GuardProvisioner {
             body: SubmitBody(
                 botId: deployment.provision.botId,
                 vkeyHex: vkeyWitness.vkeyHex,
-                signatureHex: vkeyWitness.signatureHex,
-            ),
+                signatureHex: vkeyWitness.signatureHex
+            )
         )
         return result.deployTx
     }

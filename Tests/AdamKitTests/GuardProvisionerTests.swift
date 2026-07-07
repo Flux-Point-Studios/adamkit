@@ -5,7 +5,7 @@ import Testing
 
 private let testConfig = AdamConfig(
     baseURL: URL(string: "https://gateway.test")!,
-    network: .preprod,
+    network: .preprod
 )
 
 private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedClient {
@@ -16,12 +16,12 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
             refreshToken: "refresh",
             expiresAt: Date().addingTimeInterval(3600),
             walletAddress: "addr_test1x",
-            deviceId: "dev",
+            deviceId: "dev"
         ))
     let client = AdamClient(config: testConfig, transport: transport)
     return AuthorizedClient(
         client: client,
-        session: AdamSession(client: client, signer: FakeSigner(), tokenStore: store),
+        session: AdamSession(client: client, signer: FakeSigner(), tokenStore: store)
     )
 }
 
@@ -57,7 +57,7 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
         await transport.stub("POST", "/api/v1/guard/provision", status: 200, json: json)
         await transport.stub(
             "POST", "/api/v1/guard/provision/submit", status: 200,
-            json: #"{"data":{"deployTx":"feedbead"}}"#,
+            json: #"{"data":{"deployTx":"feedbead"}}"#
         )
 
         let witnessVectors = try ContractFiles.vector("witness-set.json", as: WitnessSetVectors.self)
@@ -89,7 +89,7 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
         await transport.stub("POST", "/api/v1/guard/provision/confirm", status: 409, json: notReady)
         await transport.stub(
             "POST", "/api/v1/guard/provision/confirm", status: 200,
-            json: #"{"data":{"active":true,"guardAddr":"addr_test1guard"}}"#,
+            json: #"{"data":{"active":true,"guardAddr":"addr_test1guard"}}"#
         )
 
         let slept = SleepRecorder()
@@ -120,7 +120,7 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
         let transport = StubHTTPTransport()
         await transport.stub(
             "POST", "/api/v1/guard/provision/confirm", status: 400,
-            json: #"{"error":{"code":"NO_PENDING_GUARD","message":"provision first","requestId":"r"}}"#,
+            json: #"{"error":{"code":"NO_PENDING_GUARD","message":"provision first","requestId":"r"}}"#
         )
         let provisioner = GuardProvisioner(
             api: try await makeAPI(transport), signer: FakeSigner(), sleep: { _ in })

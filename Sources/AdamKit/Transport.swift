@@ -1,6 +1,8 @@
 import Foundation
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+    // corelibs-foundation never annotated URLSession/URLSessionWebSocketTask
+    // as Sendable; on Darwin they are.
+    @preconcurrency import FoundationNetworking
 #endif
 
 public struct HTTPRequest: Sendable {

@@ -5,7 +5,7 @@ import Testing
 
 private let testConfig = AdamConfig(
     baseURL: URL(string: "https://gateway.test")!,
-    network: .preprod,
+    network: .preprod
 )
 
 private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedClient {
@@ -16,12 +16,12 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
             refreshToken: "refresh",
             expiresAt: Date().addingTimeInterval(3600),
             walletAddress: "addr_test1x",
-            deviceId: "dev",
+            deviceId: "dev"
         ))
     let client = AdamClient(config: testConfig, transport: transport)
     return AuthorizedClient(
         client: client,
-        session: AdamSession(client: client, signer: FakeSigner(), tokenStore: store),
+        session: AdamSession(client: client, signer: FakeSigner(), tokenStore: store)
     )
 }
 
@@ -59,7 +59,7 @@ private func vectorSignRequest(
         rationale: "vector-backed test request",
         estimatedValueAda: 50,
         estimatedFeeAda: 0.2,
-        createdAt: "2026-07-07T00:00:00.000Z",
+        createdAt: "2026-07-07T00:00:00.000Z"
     )
 }
 
@@ -82,11 +82,11 @@ private func signaturesListJSON(_ requests: [SignRequest]) throws -> String {
         let request = try vectorSignRequest()
         await transport.stub(
             "GET", "/api/v1/agent/signatures", status: 200,
-            json: try signaturesListJSON([request]),
+            json: try signaturesListJSON([request])
         )
         await transport.stub(
             "POST", "/api/v1/agent/signatures/req-1", status: 200,
-            json: #"{"data":{"requestId":"req-1","status":"approved"}}"#,
+            json: #"{"data":{"requestId":"req-1","status":"approved"}}"#
         )
 
         let witnessVectors = try ContractFiles.vector("witness-set.json", as: WitnessSetVectors.self)
@@ -115,7 +115,7 @@ private func signaturesListJSON(_ requests: [SignRequest]) throws -> String {
         let tampered = try vectorSignRequest(tamperHash: true)
         await transport.stub(
             "GET", "/api/v1/agent/signatures", status: 200,
-            json: try signaturesListJSON([tampered]),
+            json: try signaturesListJSON([tampered])
         )
         let signer = FakeSigner()
         let coordinator = SigningCoordinator(api: try await makeAPI(transport), signer: signer)
@@ -139,7 +139,7 @@ private func signaturesListJSON(_ requests: [SignRequest]) throws -> String {
         let tampered = try vectorSignRequest(tamperCbor: true)
         await transport.stub(
             "GET", "/api/v1/agent/signatures", status: 200,
-            json: try signaturesListJSON([tampered]),
+            json: try signaturesListJSON([tampered])
         )
         let signer = FakeSigner()
         let coordinator = SigningCoordinator(api: try await makeAPI(transport), signer: signer)
@@ -163,11 +163,11 @@ private func signaturesListJSON(_ requests: [SignRequest]) throws -> String {
             rationale: request.rationale,
             estimatedValueAda: request.estimatedValueAda,
             estimatedFeeAda: request.estimatedFeeAda,
-            createdAt: request.createdAt,
+            createdAt: request.createdAt
         )
         await transport.stub(
             "GET", "/api/v1/agent/signatures", status: 200,
-            json: try signaturesListJSON([request]),
+            json: try signaturesListJSON([request])
         )
         let coordinator = SigningCoordinator(
             api: try await makeAPI(transport), signer: FakeSigner())
@@ -183,7 +183,7 @@ private func signaturesListJSON(_ requests: [SignRequest]) throws -> String {
         let request = try vectorSignRequest()
         await transport.stub(
             "GET", "/api/v1/agent/signatures", status: 200,
-            json: try signaturesListJSON([request]),
+            json: try signaturesListJSON([request])
         )
         let witnessVectors = try ContractFiles.vector("witness-set.json", as: WitnessSetVectors.self)
         let double = try #require(witnessVectors.cases.first { $0.expected.count == 2 })
@@ -205,11 +205,11 @@ private func signaturesListJSON(_ requests: [SignRequest]) throws -> String {
         let request = try vectorSignRequest()
         await transport.stub(
             "GET", "/api/v1/agent/signatures", status: 200,
-            json: try signaturesListJSON([request]),
+            json: try signaturesListJSON([request])
         )
         await transport.stub(
             "POST", "/api/v1/agent/signatures/req-1", status: 200,
-            json: #"{"data":{"requestId":"req-1","status":"declined"}}"#,
+            json: #"{"data":{"requestId":"req-1","status":"declined"}}"#
         )
         let signer = FakeSigner()
         let coordinator = SigningCoordinator(api: try await makeAPI(transport), signer: signer)
@@ -238,7 +238,7 @@ private func signaturesListJSON(_ requests: [SignRequest]) throws -> String {
             rationale: request.rationale,
             estimatedValueAda: request.estimatedValueAda,
             estimatedFeeAda: request.estimatedFeeAda,
-            createdAt: 1_783_400_000_000,
+            createdAt: 1_783_400_000_000
         )
         let surfaced = await coordinator.handle(.signRequired(push))
         #expect(surfaced?.requestId == request.requestId)
@@ -257,7 +257,7 @@ private func signaturesListJSON(_ requests: [SignRequest]) throws -> String {
             rationale: push.rationale,
             estimatedValueAda: push.estimatedValueAda,
             estimatedFeeAda: push.estimatedFeeAda,
-            createdAt: 1_783_400_000_000,
+            createdAt: 1_783_400_000_000
         )
         #expect(await coordinator.handle(.signRequired(tampered)) == nil)
         #expect(await coordinator.pending.map(\.requestId) == [request.requestId])
@@ -268,11 +268,11 @@ private func signaturesListJSON(_ requests: [SignRequest]) throws -> String {
         let request = try vectorSignRequest()
         await transport.stub(
             "GET", "/api/v1/agent/signatures", status: 200,
-            json: try signaturesListJSON([request]),
+            json: try signaturesListJSON([request])
         )
         await transport.stub(
             "GET", "/api/v1/agent/signatures", status: 200,
-            json: try signaturesListJSON([]),
+            json: try signaturesListJSON([])
         )
         let coordinator = SigningCoordinator(
             api: try await makeAPI(transport), signer: FakeSigner())

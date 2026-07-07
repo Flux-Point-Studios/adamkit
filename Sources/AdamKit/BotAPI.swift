@@ -32,7 +32,7 @@ public struct BotAPI: Sendable {
     public func activity(limit: Int = 50) async throws -> [ActivityEvent] {
         let list: ActivityList = try await api.get(
             "/api/v1/agent/activity",
-            query: [("limit", String(limit))],
+            query: [("limit", String(limit))]
         )
         return list.events
     }

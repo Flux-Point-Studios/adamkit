@@ -62,7 +62,7 @@ public struct AdamClient: Sendable {
 
         let response = try await transport.send(
             HTTPRequest(method: method, path: path, query: query, headers: headers, body: encodedBody),
-            baseURL: config.baseURL,
+            baseURL: config.baseURL
         )
 
         let decoder = JSONDecoder()
@@ -71,7 +71,7 @@ public struct AdamClient: Sendable {
                 throw AdamError.api(
                     code: envelope.error.code,
                     message: envelope.error.message,
-                    statusCode: response.statusCode,
+                    statusCode: response.statusCode
                 )
             }
             throw AdamError.contract("HTTP \(response.statusCode) without error envelope on \(path)")

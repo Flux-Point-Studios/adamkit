@@ -66,7 +66,7 @@ public actor SigningCoordinator {
             estimatedValueAda: push.estimatedValueAda,
             estimatedFeeAda: push.estimatedFeeAda,
             createdAt: ISO8601DateFormatter().string(
-                from: Date(timeIntervalSince1970: push.createdAt / 1000)),
+                from: Date(timeIntervalSince1970: push.createdAt / 1000))
         )
         let isNew = requests[request.requestId] == nil
         return ingest(request) == .verified && isNew ? request : nil
@@ -90,7 +90,7 @@ public actor SigningCoordinator {
         let witness = try await signer.witnessTransaction(
             unsignedCborHex: request.unsignedCborHex,
             bodyHashHex: request.bodyHashHex,
-            context: .trade(request),
+            context: .trade(request)
         )
         let vkeyWitness = try witness.vkeyWitness()
 
@@ -104,8 +104,8 @@ public actor SigningCoordinator {
             body: SubmitBody(
                 approved: true,
                 vkeyHex: vkeyWitness.vkeyHex,
-                signatureHex: vkeyWitness.signatureHex,
-            ),
+                signatureHex: vkeyWitness.signatureHex
+            )
         )
         let state = SignRequestState.submitted(status: status.status)
         states[requestId] = state
@@ -118,7 +118,7 @@ public actor SigningCoordinator {
         }
         let _: DecisionStatus = try await api.post(
             "/api/v1/agent/signatures/\(requestId)",
-            body: DeclineBody(approved: false),
+            body: DeclineBody(approved: false)
         )
         states[requestId] = .declined
         return .declined
@@ -170,7 +170,7 @@ public actor ApprovalCoordinator {
         }
         let status: DecisionStatus = try await api.post(
             "/api/v1/agent/approvals/\(planId)",
-            body: RespondBody(approved: approved),
+            body: RespondBody(approved: approved)
         )
         return status.status
     }

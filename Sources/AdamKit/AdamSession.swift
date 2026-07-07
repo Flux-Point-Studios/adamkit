@@ -54,7 +54,7 @@ public actor AdamSession {
     ) async throws -> AdamUser {
         let challenge: AuthChallenge = try await client.get(
             "/api/v1/auth/nonce",
-            query: [("walletAddress", walletAddress)],
+            query: [("walletAddress", walletAddress)]
         )
         let signature = try await signer.signAuthChallenge(challenge, walletAddress: walletAddress)
         let result: LoginResult = try await client.post(
@@ -67,8 +67,8 @@ public actor AdamSession {
                 publicKey: signature.publicKeyHex,
                 deviceId: deviceId,
                 deviceName: deviceName,
-                partnerId: client.config.partnerId,
-            ),
+                partnerId: client.config.partnerId
+            )
         )
         try await tokenStore.save(
             StoredTokens(
@@ -76,7 +76,7 @@ public actor AdamSession {
                 refreshToken: result.refreshToken,
                 expiresAt: now().addingTimeInterval(TimeInterval(result.expiresIn)),
                 walletAddress: walletAddress,
-                deviceId: deviceId,
+                deviceId: deviceId
             ))
         return result.user
     }
@@ -106,7 +106,7 @@ public actor AdamSession {
         do {
             result = try await client.post(
                 "/api/v1/auth/refresh",
-                body: RefreshRequestBody(refreshToken: stored.refreshToken, deviceId: stored.deviceId),
+                body: RefreshRequestBody(refreshToken: stored.refreshToken, deviceId: stored.deviceId)
             )
         } catch let error as AdamError where error.isAuthExpiry {
             try await tokenStore.clear()
@@ -117,7 +117,7 @@ public actor AdamSession {
             refreshToken: result.refreshToken,
             expiresAt: now().addingTimeInterval(TimeInterval(result.expiresIn)),
             walletAddress: stored.walletAddress,
-            deviceId: stored.deviceId,
+            deviceId: stored.deviceId
         )
         try await tokenStore.save(rotated)
         return rotated
@@ -132,7 +132,7 @@ public actor AdamSession {
             let _: LogoutResult = try await client.post(
                 "/api/v1/auth/logout",
                 body: LogoutRequestBody(refreshToken: stored.refreshToken, allDevices: allDevices),
-                accessToken: stored.accessToken,
+                accessToken: stored.accessToken
             )
         }
         try await tokenStore.clear()

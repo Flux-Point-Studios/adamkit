@@ -5,7 +5,7 @@ import Testing
 
 private let testConfig = AdamConfig(
     baseURL: URL(string: "https://gateway.test")!,
-    network: .preprod,
+    network: .preprod
 )
 
 private func liveSession() async throws -> AdamSession {
@@ -16,12 +16,12 @@ private func liveSession() async throws -> AdamSession {
             refreshToken: "refresh",
             expiresAt: Date().addingTimeInterval(3600),
             walletAddress: "addr_test1x",
-            deviceId: "dev",
+            deviceId: "dev"
         ))
     return AdamSession(
         client: AdamClient(config: testConfig, transport: StubHTTPTransport()),
         signer: FakeSigner(),
-        tokenStore: store,
+        tokenStore: store
     )
 }
 
@@ -130,7 +130,7 @@ private func liveSession() async throws -> AdamSession {
             config: testConfig,
             session: try await liveSession(),
             transport: transport,
-            sleep: { _ in },
+            sleep: { _ in }
         )
         _ = await realtime.start()
 
@@ -161,7 +161,7 @@ private func liveSession() async throws -> AdamSession {
             config: testConfig,
             session: try await liveSession(),
             transport: transport,
-            sleep: { await slept.record($0) },
+            sleep: { await slept.record($0) }
         )
         let events = await realtime.start()
 

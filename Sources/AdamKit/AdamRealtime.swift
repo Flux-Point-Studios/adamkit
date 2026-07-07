@@ -114,7 +114,7 @@ public actor AdamRealtime {
                 components.queryItems = [URLQueryItem(name: "token", value: token)]
                 let connection = try await transport.connect(
                     url: components.url!,
-                    headers: ["authorization": "Bearer \(token)"],
+                    headers: ["authorization": "Bearer \(token)"]
                 )
                 self.connection = connection
                 for channel in desiredChannels {

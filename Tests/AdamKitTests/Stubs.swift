@@ -37,7 +37,7 @@ actor StubHTTPTransport: HTTPTransport {
                 method: method,
                 path: path,
                 response: HTTPResponse(statusCode: status, body: Data(json.utf8)),
-                sticky: sticky,
+                sticky: sticky
             ))
     }
 
@@ -50,7 +50,7 @@ actor StubHTTPTransport: HTTPTransport {
                 method: fixture.request.method,
                 path: String(path),
                 response: HTTPResponse(statusCode: fixture.response.statusCode, body: body),
-                sticky: sticky,
+                sticky: sticky
             ))
     }
 
@@ -62,7 +62,7 @@ actor StubHTTPTransport: HTTPTransport {
                 method: request.method,
                 path: request.path,
                 headers: request.headers,
-                body: request.body,
+                body: request.body
             ))
         guard
             let index = routes.firstIndex(where: {
@@ -82,11 +82,11 @@ actor StubHTTPTransport: HTTPTransport {
 actor FakeSigner: AdamHostSigner {
     var authSignature = AuthSignature(
         signatureHex: String(repeating: "0", count: 128),
-        publicKeyHex: String(repeating: "0", count: 64),
+        publicKeyHex: String(repeating: "0", count: 64)
     )
     var witness: TransactionWitness = .vkey(
         vkeyHex: String(repeating: "a", count: 64),
-        signatureHex: String(repeating: "b", count: 128),
+        signatureHex: String(repeating: "b", count: 128)
     )
 
     private(set) var signedChallenges: [AuthChallenge] = []
