@@ -113,22 +113,18 @@ the sdk-contract drift check runs in the same pipeline via `pnpm -r run test`.
 
 ## Gateway prerequisites (Phase 0)
 
-AdamKit is written to the designed contract. Three things must land in
-`packages/api-gateway` before it can talk to a production (non-`DEV_MODE`)
-gateway — the Phase 0 hardening from the integration plan:
+AdamKit is written to the designed contract; the Phase 0 gateway hardening it
+depends on now lives in `packages/api-gateway`:
 
-- **Real CIP-30 login verification.** The current `/api/v1/auth/login` verifier
-  is demo-grade; it must verify the COSE_Sign1 the SDK's `signAuthChallenge`
-  produces against the wallet's key, or login only succeeds under `DEV_MODE`.
-- **`partnerId` persistence.** The SDK sends `partnerId` on login; the gateway
-  must accept and store it (a `partners` table + `users.partnerId`) for
-  attribution to exist. Until then it is silently ignored, harmlessly.
-- **Server-side logout.** `logout()` posts the refresh token; the gateway must
-  revoke that session even when the access token has expired, or a logged-out
-  refresh token stays valid for its full TTL.
-
-These are gateway changes, not SDK changes — AdamKit already speaks the
-contract they complete.
+- **Real CIP-30 login verification** (`src/lib/cip8-verify.ts`) — verifies the
+  COSE_Sign1 the SDK's `signAuthChallenge` produces, binding the key to the
+  claimed address. The demo hash-substring fallback is deleted.
+- **`partnerId` persistence** — a `partners` table + `users.partnerId`; login
+  provisions a partner's users at the partner's `defaultTier` and records
+  attribution. `partnerId` confers no privileges beyond that tier.
+- **Server-side logout** — `logout()` revokes the session by refresh-token
+  possession, so a logged-out token is invalidated even with an expired access
+  token.
 
 ## Repo placement
 
