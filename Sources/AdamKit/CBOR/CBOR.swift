@@ -89,9 +89,12 @@ public enum CBOR {
             return h.headerBytes
         case 2, 3:
             if !h.indefinite {
-                let len = h.headerBytes + Int(h.arg)
-                guard offset + len <= bytes.count else { throw CBORError.truncated }
-                return len
+                // Int(exactly:) + subtraction ordering keep a hostile length
+                // claim (e.g. 2^64-1) a throw, never an arithmetic trap.
+                guard let payload = Int(exactly: h.arg),
+                    payload <= bytes.count - offset - h.headerBytes
+                else { throw CBORError.truncated }
+                return h.headerBytes + payload
             }
             var len = h.headerBytes
             while try byteAt(bytes, offset + len) != 0xff {
@@ -135,8 +138,10 @@ public enum CBOR {
         let h = try readHeader(bytes, offset)
         let payloadStart = offset + h.headerBytes
 
-        func slice(_ start: Int, _ count: Int) throws -> Data {
-            guard start + count <= bytes.count else { throw CBORError.truncated }
+        func slice(_ start: Int, _ arg: UInt64) throws -> Data {
+            guard let count = Int(exactly: arg), count <= bytes.count - start else {
+                throw CBORError.truncated
+            }
             let base = bytes.startIndex + start
             return Data(bytes[base..<base + count])
         }
@@ -157,13 +162,14 @@ public enum CBOR {
                     guard chunk.major == h.major, !chunk.indefinite else {
                         throw CBORError.unsupportedShape("mixed chunk in indefinite string")
                     }
-                    data.append(try slice(end + chunk.headerBytes, Int(chunk.arg)))
-                    end += chunk.headerBytes + Int(chunk.arg)
+                    let chunkData = try slice(end + chunk.headerBytes, chunk.arg)
+                    data.append(chunkData)
+                    end += chunk.headerBytes + chunkData.count
                 }
                 end += 1
             } else {
-                data = try slice(payloadStart, Int(h.arg))
-                end = payloadStart + Int(h.arg)
+                data = try slice(payloadStart, h.arg)
+                end = payloadStart + data.count
             }
             if h.major == 2 { return (.bytes(data), end) }
             guard let text = String(data: data, encoding: .utf8) else {
