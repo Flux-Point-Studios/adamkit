@@ -216,6 +216,11 @@ public struct GuardProvision: Sendable, Codable, Equatable {
     public let guardAddr: String
     public let deployTx: String
     public let botId: String
+    /// The agent gas wallet address the deploy tx seeds (a deterministic function
+    /// of the session key). A consent-decoding host allows exactly
+    /// `{guardAddr, agentGasAddr}` as the deposit's non-change outputs. Optional
+    /// for backward compatibility with gateways that don't yet supply it.
+    public let agentGasAddr: String?
 }
 
 struct GuardSubmitResult: Codable {

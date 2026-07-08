@@ -30,7 +30,8 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
         GuardDeployment(
             provision: GuardProvision(
                 unsignedCbor: "84a0a0f5f6", guardAddr: "addr_test1guard",
-                deployTx: String(repeating: "d", count: 64), botId: botId
+                deployTx: String(repeating: "d", count: 64), botId: botId,
+                agentGasAddr: "addr_test1agentgas"
             ),
             bodyHashHex: "ab"
         )
@@ -43,6 +44,7 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
         let tx = vectors.cases[0]
         let json = """
             {"data":{"unsignedCbor":"\(tx.txHex)","guardAddr":"addr_test1guard",\
+            "agentGasAddr":"addr_test1agentgas",\
             "deployTx":"\(String(repeating: "d", count: 64))","botId":"bot-1"}}
             """
         return (json, tx.txHex, tx.bodyHashHex)
@@ -59,6 +61,7 @@ private func makeAPI(_ transport: StubHTTPTransport) async throws -> AuthorizedC
         #expect(deployment.provision.unsignedCbor == txHex)
         #expect(deployment.bodyHashHex == bodyHashHex)
         #expect(deployment.provision.guardAddr == "addr_test1guard")
+        #expect(deployment.provision.agentGasAddr == "addr_test1agentgas")
     }
 
     @Test func signAndSubmitSendsTheDowngradedOwnerWitness() async throws {
