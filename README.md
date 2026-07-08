@@ -90,13 +90,14 @@ consume `.connected` / `.reconnecting` / `.disconnected` for lifecycle UI.
 
 ## Wire contract
 
-The SDK speaks the subset of the gateway API pinned by
-[`packages/sdk-contract`](../sdk-contract): endpoint fixtures captured from a
-live gateway, plus cross-language vectors for blake2b, CBOR span-walking,
-tx-body extraction/hashing, and witness-set extraction (generated from the
-CSL-byte-identity-tested reference signer). The vectors and fixtures are the
-source of truth in both CI directions: the gateway's drift test fails when a
-change would break a pinned SDK, and AdamKit's tests consume the same files.
+The SDK speaks the subset of the gateway API pinned by the `sdk-contract`
+package (in the ADAM monorepo): endpoint fixtures captured from a live gateway,
+plus cross-language vectors for blake2b, CBOR span-walking, tx-body
+extraction/hashing, and witness-set extraction (generated from the
+CSL-byte-identity-tested reference signer). Those vectors and fixtures are
+bundled here under `Tests/AdamKitTests/Resources/contract` and are the source
+of truth in both CI directions: the gateway's drift test fails when a change
+would break a pinned SDK, and AdamKit's tests consume the same files.
 
 Numbers carried in `SignRequest` (`estimatedValueAda`, descriptions,
 rationale) are display anchors, not trusted amounts — the transaction bytes
@@ -134,3 +135,8 @@ remote dependencies, so partner apps consume it either by vendoring the
 `packages/adamkit` directory, or — once a partner needs versioned remote
 consumption — via `git subtree split` of this directory into a standalone
 repo, which needs no code changes.
+
+## License
+
+Apache License 2.0 — see [`LICENSE`](LICENSE). `SPDX-License-Identifier: Apache-2.0`.
+Copyright 2026 Flux Point Studios.
