@@ -74,12 +74,15 @@ for await event in events {
 // User approves in your UI → host witnesses → SDK submits.
 try await adam.signing.approve(request.requestId)
 
-// Guard provisioning (autonomous mode).
-let deployment = try await adam.guardProvisioner.requestDeployment(principalAda: 100)
-// Decode deployment.provision.unsignedCbor, show the user the principal,
-// guard address, and datum; then:
+// Guard provisioning (autonomous mode). `consent` is the TokenCapConsent the
+// user approved in your caps sheet — it is sent to the server (which builds
+// the guard with exactly those caps) AND independently attested against the
+// returned deploy's on-chain datum; any mismatch throws before witnessing.
+let deployment = try await adam.guardProvisioner.requestDeployment(
+    principalAda: 100, consent: consent)
+// Render deployment.consentSummary (the SDK-attested caps) to the user; then:
 let depositTx = try await adam.guardProvisioner.signAndSubmit(deployment)
-let confirmation = try await adam.guardProvisioner.confirm()
+let confirmation = try await adam.guardProvisioner.confirm(deployment)
 _ = try await adam.bot.arm()
 ```
 

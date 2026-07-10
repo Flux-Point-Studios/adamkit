@@ -127,6 +127,87 @@ private func guardConsent() throws -> TokenCapConsent {
         #expect(deployment.consentSummary.tokenCaps.first?.perTx == 500)
     }
 
+    /// The provision request must carry the owner's consented caps — derived
+    /// from the SAME `TokenCapConsent` that `pinAndVerify` attests — so the
+    /// server builds the guard with exactly the caps the owner agreed to.
+    @Test func requestDeploymentForwardsTheConsentedCapsInTheProvisionBody() async throws {
+        let transport = StubHTTPTransport()
+        let (json, _, _) = try provisionJSON()
+        await transport.stub("POST", "/api/v1/guard/provision", status: 200, json: json)
+
+        let consent = TokenCapConsent(
+            tokens: [], adaPerTx: 20_000_000, adaDaily: 30_000_000,
+            windowLen: 86_400_000, minPrincipal: 5_000_000, maxSpends: 10,
+            expiry: 4_000_000_000_000)
+        let provisioner = GuardProvisioner(
+            api: try await makeAPI(transport), signer: FakeSigner(), sleep: { _ in })
+        // The stubbed deploy datum does not match this consent, so attestation
+        // rejects the deployment AFTER the POST — the captured request body is
+        // what this test asserts.
+        _ = try? await provisioner.requestDeployment(principalAda: 50, consent: consent)
+
+        let request = try #require(await transport.requests().last)
+        let bodyData = try #require(request.body)
+        print("guard provision wire body: \(String(decoding: bodyData, as: UTF8.self))")
+        let body = try #require(try JSONSerialization.jsonObject(with: bodyData) as? [String: Any])
+        #expect(body["principalAda"] as? Double == 50)
+        let caps = try #require(body["caps"] as? [String: Any])
+        #expect(caps["perTxCapAda"] as? Double == 20)
+        #expect(caps["dailyCapAda"] as? Double == 30)
+        #expect((caps["windowLenMs"] as? NSNumber)?.int64Value == 86_400_000)
+        #expect(caps["minPrincipalAda"] as? Double == 5)
+        #expect((caps["maxSpends"] as? NSNumber)?.int64Value == 10)
+        #expect((caps["expiry"] as? NSNumber)?.int64Value == 4_000_000_000_000)
+        let tokenCaps = try #require(body["tokenCaps"] as? [[String: Any]])
+        #expect(tokenCaps.isEmpty)
+    }
+
+    /// Token quantities cross the wire as strings, so any Int64 survives —
+    /// values above 2^53 prove the encoding never rounds through Double.
+    @Test func requestDeploymentEncodesTokenCapsAsHexPoliciesAndLosslessStrings() async throws {
+        let transport = StubHTTPTransport()
+        let (json, _, _) = try provisionJSON()
+        await transport.stub("POST", "/api/v1/guard/provision", status: 200, json: json)
+
+        let policyHex = String(repeating: "ab", count: 28)
+        let consent = TokenCapConsent(
+            tokens: [
+                .init(
+                    policy: try Data(hexString: policyHex),
+                    name: try Data(hexString: "544f4b"),
+                    perTx: 9_007_199_254_740_993,  // 2^53 + 1
+                    daily: 9_007_199_254_740_995)  // 2^53 + 3
+            ],
+            adaPerTx: 20_000_000, adaDaily: 50_000_000,
+            windowLen: 86_400_000, minPrincipal: 5_000_000, maxSpends: 10,
+            expiry: 2_000_000_000_000)
+        let provisioner = GuardProvisioner(
+            api: try await makeAPI(transport), signer: FakeSigner(), sleep: { _ in })
+        _ = try? await provisioner.requestDeployment(principalAda: 25, consent: consent)
+
+        let request = try #require(await transport.requests().last)
+        let bodyData = try #require(request.body)
+        let body = try #require(try JSONSerialization.jsonObject(with: bodyData) as? [String: Any])
+        let tokenCaps = try #require(body["tokenCaps"] as? [[String: Any]])
+        #expect(tokenCaps.count == 1)
+        let token = try #require(tokenCaps.first)
+        #expect(token["policy"] as? String == policyHex)
+        #expect(token["name"] as? String == "544f4b")
+        #expect(token["perTx"] as? String == "9007199254740993")
+        #expect(token["daily"] as? String == "9007199254740995")
+    }
+
+    /// Documents the round-trip contract with the gateway: caps cross the wire
+    /// as decimal ADA and the server recovers lovelace via Math.round(ada*1e6),
+    /// which is exact for every realistic lovelace amount. (And if it ever were
+    /// not, `pinAndVerify` would reject the mismatched datum — fail-closed.)
+    @Test func lovelaceRoundTripsExactlyThroughDecimalAda() {
+        for lovelace: Int64 in [1, 12_345_678, 999_999_999_999, 1_000_000_000_001, 45_000_000_000_000] {
+            let ada = Double(lovelace) / 1_000_000
+            #expect(Int64((ada * 1_000_000).rounded()) == lovelace)
+        }
+    }
+
     @Test func requestDeploymentRejectsAGuardThatDoesNotMatchConsent() async throws {
         let transport = StubHTTPTransport()
         let (json, _, _) = try provisionJSON()
