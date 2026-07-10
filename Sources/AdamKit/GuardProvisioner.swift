@@ -1,11 +1,17 @@
 import Foundation
 
 /// A guard deploy the server built and the owner must witness. `bodyHashHex`
-/// is computed by the SDK from the CBOR — the host must decode the same bytes
-/// and show the user the principal, script address, and datum before signing.
+/// is computed by the SDK from the CBOR; `attestedDatum` is the on-chain guard
+/// datum the SDK independently decoded, pinned to the universal guard address,
+/// and verified against the owner's consent before this value ever exists — so
+/// a non-consenting guard cannot be constructed, let alone witnessed.
 public struct GuardDeployment: Sendable, Equatable {
     public let provision: GuardProvision
     public let bodyHashHex: String
+    public let attestedDatum: GuardDatum
+
+    /// The SDK-attested cap summary the host consent sheet should render.
+    public var consentSummary: GuardConsentSummary { GuardConsentSummary(datum: attestedDatum) }
 }
 
 /// Drives per-user spending-guard provisioning: build → owner witness →
@@ -27,8 +33,19 @@ public actor GuardProvisioner {
         self.sleep = sleep
     }
 
-    /// Build the owner-signed deploy transaction for `principalAda`.
-    public func requestDeployment(principalAda: Double, botId: String? = nil) async throws -> GuardDeployment {
+    /// Build the owner-signed deploy transaction for `principalAda` and attest
+    /// it before returning. `consent` is the tradeable-token set + per-token/ADA
+    /// caps the owner agreed to in the host consent sheet. After the body-hash
+    /// check, the SDK pins the universal guard address, decodes the on-chain
+    /// datum, and requires it to name the owner, the bundled STT policy, the
+    /// agent bound to the deploy's funded gas address, and exactly the consented
+    /// caps — throwing `AdamError.contract` on any mismatch so a non-consenting
+    /// guard never reaches `signAndSubmit`.
+    public func requestDeployment(
+        principalAda: Double,
+        consent: TokenCapConsent,
+        botId: String? = nil
+    ) async throws -> GuardDeployment {
         struct ProvisionBody: Encodable {
             let principalAda: Double
             let botId: String?
@@ -39,7 +56,17 @@ public actor GuardProvisioner {
         )
         let tx = try Data(hexString: provision.unsignedCbor)
         let bodyHashHex = try CardanoTx.bodyHash(tx).hexString
-        return GuardDeployment(provision: provision, bodyHashHex: bodyHashHex)
+
+        let ownerAddress = try await api.currentWalletAddress()
+        let attestedDatum = try GuardAttestation.pinAndVerify(
+            deployTx: tx,
+            network: api.network,
+            ownerAddress: ownerAddress,
+            consent: consent,
+            agentGasAddr: provision.agentGasAddr
+        )
+        return GuardDeployment(
+            provision: provision, bodyHashHex: bodyHashHex, attestedDatum: attestedDatum)
     }
 
     /// Witness the deploy with the owner key and broadcast. Returns the
@@ -48,7 +75,7 @@ public actor GuardProvisioner {
         let witness = try await signer.witnessTransaction(
             unsignedCborHex: deployment.provision.unsignedCbor,
             bodyHashHex: deployment.bodyHashHex,
-            context: .guardDeploy(deployment.provision)
+            context: .guardDeploy(deployment.provision, consent: deployment.consentSummary)
         )
         let vkeyWitness = try witness.vkeyWitness()
 

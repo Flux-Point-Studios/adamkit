@@ -89,6 +89,15 @@ public actor AdamSession {
         return result.user
     }
 
+    /// The logged-in owner's wallet address (bech32), as persisted at login.
+    /// Guard attestation derives the owner's payment key-hash from it.
+    public func currentWalletAddress() async throws -> String {
+        guard let stored = try await tokenStore.load() else {
+            throw AdamError.notAuthenticated
+        }
+        return stored.walletAddress
+    }
+
     /// A token safe to attach to a request, refreshing first when the stored
     /// one is expired or about to be.
     public func validAccessToken() async throws -> String {
@@ -191,5 +200,13 @@ public struct AuthorizedClient: Sendable {
         } catch let error as AdamError where error.isAuthExpiry {
             return try await client.post(path, body: body, accessToken: session.forceRefresh())
         }
+    }
+
+    /// The chain network this client is pinned to — selects the guard address.
+    var network: AdamConfig.Network { client.config.network }
+
+    /// The logged-in owner's wallet address, for guard owner-attestation.
+    func currentWalletAddress() async throws -> String {
+        try await session.currentWalletAddress()
     }
 }

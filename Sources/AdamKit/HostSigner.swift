@@ -30,7 +30,10 @@ public enum TransactionWitness: Sendable {
 /// trusted amounts.
 public enum SigningContext: Sendable {
     case trade(SignRequest)
-    case guardDeploy(GuardProvision)
+    /// A guard deploy the SDK has already pinned and consent-verified on-chain.
+    /// `consent` is the SDK-attested cap summary (decoded from the inline datum,
+    /// not server-claimed) so the host consent sheet renders the real caps.
+    case guardDeploy(GuardProvision, consent: GuardConsentSummary)
     /// Owner withdrawal: returns all guard funds and closes the guard.
     case guardSweep(GuardSweep)
 }

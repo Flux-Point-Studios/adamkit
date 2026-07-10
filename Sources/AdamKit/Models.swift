@@ -269,6 +269,156 @@ struct GuardSweepSubmitResult: Codable {
     let sweepTx: String
 }
 
+// MARK: - Guard datum (on-chain attestation)
+
+/// A per-token spending cap declared in the guard datum. ADA uses the EMPTY
+/// bytestring for both `policy` and `name` (CBOR `0x40`).
+public struct AssetCap: Sendable, Equatable {
+    public let policy: Data
+    public let name: Data
+    public let perTx: Int64
+    public let daily: Int64
+
+    public init(policy: Data, name: Data, perTx: Int64, daily: Int64) {
+        self.policy = policy
+        self.name = name
+        self.perTx = perTx
+        self.daily = daily
+    }
+}
+
+/// One recorded spend in the guard's rolling window. ADA uses the EMPTY
+/// bytestring for both `policy` and `name`.
+public struct SpendRecord: Sendable, Equatable {
+    public let policy: Data
+    public let name: Data
+    public let at: Int64
+    public let amount: Int64
+
+    public init(policy: Data, name: Data, at: Int64, amount: Int64) {
+        self.policy = policy
+        self.name = name
+        self.at = at
+        self.amount = amount
+    }
+}
+
+/// The on-chain guard datum, decoded field-for-field from the deploy tx's
+/// inline datum. This is the ground truth the guard validator enforces; the
+/// SDK decodes it independently so a non-consenting guard never reaches the
+/// owner's signature. Field order matches the frozen 12-field Constr-0 layout.
+public struct GuardDatum: Sendable, Equatable {
+    public let ownerVkh: Data
+    public let sttPolicy: Data
+    public let agentVkh: Data
+    public let perTxCap: Int64
+    public let dailyCap: Int64
+    public let windowLen: Int64
+    public let tokenCaps: [AssetCap]
+    public let spends: [SpendRecord]
+    public let minPrincipal: Int64
+    public let maxSpends: Int64
+    public let expiry: Int64
+    public let kill: Bool
+
+    public init(
+        ownerVkh: Data, sttPolicy: Data, agentVkh: Data,
+        perTxCap: Int64, dailyCap: Int64, windowLen: Int64,
+        tokenCaps: [AssetCap], spends: [SpendRecord],
+        minPrincipal: Int64, maxSpends: Int64, expiry: Int64, kill: Bool
+    ) {
+        self.ownerVkh = ownerVkh
+        self.sttPolicy = sttPolicy
+        self.agentVkh = agentVkh
+        self.perTxCap = perTxCap
+        self.dailyCap = dailyCap
+        self.windowLen = windowLen
+        self.tokenCaps = tokenCaps
+        self.spends = spends
+        self.minPrincipal = minPrincipal
+        self.maxSpends = maxSpends
+        self.expiry = expiry
+        self.kill = kill
+    }
+}
+
+/// The exact guard configuration the owner consented to. The host builds this
+/// from the consent sheet and passes it down; `pinAndVerify` rejects any guard
+/// whose on-chain datum differs in ANY security-relevant field, so the deployed
+/// guard is byte-exactly the one the owner agreed to. ADA caps are named
+/// explicitly rather than folded into `tokenCaps` — the on-chain `token_caps`
+/// list carries only non-ADA assets. `windowLen` is the sliding-window length
+/// the daily cap is measured over; a smaller window silently defeats the daily
+/// cap (records age out instantly), so it is attested exactly like the caps.
+public struct TokenCapConsent: Sendable, Equatable {
+    /// A single consented non-ADA token cap.
+    public struct Token: Sendable, Equatable {
+        public let policy: Data
+        public let name: Data
+        public let perTx: Int64
+        public let daily: Int64
+
+        public init(policy: Data, name: Data, perTx: Int64, daily: Int64) {
+            self.policy = policy
+            self.name = name
+            self.perTx = perTx
+            self.daily = daily
+        }
+    }
+
+    /// The non-ADA token caps, in the exact order they appear on-chain.
+    public let tokens: [Token]
+    public let adaPerTx: Int64
+    public let adaDaily: Int64
+    public let windowLen: Int64
+    public let minPrincipal: Int64
+    public let maxSpends: Int64
+    public let expiry: Int64
+
+    public init(
+        tokens: [Token],
+        adaPerTx: Int64,
+        adaDaily: Int64,
+        windowLen: Int64,
+        minPrincipal: Int64,
+        maxSpends: Int64,
+        expiry: Int64
+    ) {
+        self.tokens = tokens
+        self.adaPerTx = adaPerTx
+        self.adaDaily = adaDaily
+        self.windowLen = windowLen
+        self.minPrincipal = minPrincipal
+        self.maxSpends = maxSpends
+        self.expiry = expiry
+    }
+}
+
+/// A compact, host-renderable summary of the attested guard — carried in the
+/// signing context so the consent sheet shows the caps the SDK actually
+/// verified on-chain, not server-claimed numbers.
+public struct GuardConsentSummary: Sendable, Equatable {
+    public let ownerVkhHex: String
+    public let agentVkhHex: String
+    public let perTxCapAda: Int64
+    public let dailyCapAda: Int64
+    public let minPrincipalAda: Int64
+    public let maxSpends: Int64
+    public let expiry: Int64
+    public let tokenCaps: [AssetCap]
+
+    public init(datum: GuardDatum) {
+        self.ownerVkhHex = datum.ownerVkh.hexString
+        self.agentVkhHex = datum.agentVkh.hexString
+        self.perTxCapAda = datum.perTxCap
+        self.dailyCapAda = datum.dailyCap
+        self.minPrincipalAda = datum.minPrincipal
+        self.maxSpends = datum.maxSpends
+        self.expiry = datum.expiry
+        self.tokenCaps = datum.tokenCaps
+    }
+}
+
 // MARK: - Realtime payloads
 
 /// `sign_required` as pushed on the `notifications` channel (`createdAt` is

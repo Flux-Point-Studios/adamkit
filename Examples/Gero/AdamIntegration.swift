@@ -78,11 +78,14 @@ public struct AdamFlow: Sendable {
     }
 
     /// 4. Enable autonomous mode: the user witnesses ONE guard-deploy tx (present
-    /// `deployment.provision` — principal, guard address, per-tx + daily caps —
-    /// for consent), then the bot is armed. The backend can then trade 24/7 within
-    /// the on-chain caps; the owner can sweep + revoke unilaterally.
-    public func enableAutonomous(principalAda: Double) async throws {
-        let deployment = try await adam.guardProvisioner.requestDeployment(principalAda: principalAda)
+    /// `deployment.consentSummary` — the SDK-attested principal, owner, per-tx +
+    /// daily caps decoded from the on-chain datum — for consent), then the bot is
+    /// armed. `consent` is the tradeable-token set + caps the user agreed to;
+    /// `requestDeployment` pins the guard address and rejects any deploy whose
+    /// on-chain caps differ. The owner can sweep + revoke unilaterally.
+    public func enableAutonomous(principalAda: Double, consent: TokenCapConsent) async throws {
+        let deployment = try await adam.guardProvisioner.requestDeployment(
+            principalAda: principalAda, consent: consent)
         _ = try await adam.guardProvisioner.signAndSubmit(deployment)
         _ = try await adam.guardProvisioner.confirm(deployment)
         _ = try await adam.bot.arm()
