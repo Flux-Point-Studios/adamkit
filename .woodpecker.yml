@@ -1,0 +1,15 @@
+# Woodpecker CI (ci.fluxpointstudios.com). One self-contained step: swift test
+# builds the package (including the GeroExample reference target) and runs the
+# swift-testing suite on the toolchain matching swift-tools-version (6.0).
+# Zero dependencies, so no network is needed beyond the image pull.
+
+when:
+  - event: [push, pull_request]
+    branch: main
+  - event: tag
+
+steps:
+  - name: swift-test
+    image: swift:6.0
+    commands:
+      - swift test
