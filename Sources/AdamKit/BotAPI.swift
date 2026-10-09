@@ -29,6 +29,8 @@ public struct BotAPI: Sendable {
         return list.strategies
     }
 
+    /// Reads recorded activity. If its backing records are unavailable, throws
+    /// `AdamError.api` with `ACTIVITY_UNAVAILABLE` (503), not an empty history.
     public func activity(limit: Int = 50) async throws -> [ActivityEvent] {
         let list: ActivityList = try await api.get(
             "/api/v1/agent/activity",
