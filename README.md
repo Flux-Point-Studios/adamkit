@@ -102,6 +102,14 @@ bundled here under `Tests/AdamKitTests/Resources/contract` and are the source
 of truth in both CI directions: the gateway's drift test fails when a change
 would break a pinned SDK, and AdamKit's tests consume the same files.
 
+The capture gateway runs without a records database or connected trading
+runtime. Its activity fixture (the legacy `agent-activity-empty.json` filename)
+therefore pins `503 ACTIVITY_UNAVAILABLE`, not a verified empty history.
+`BotAPI.activity()` surfaces that typed error to the host. Successful history
+responses remain `{ "data": { "events": [...] } }`; the consumer tests cover
+that decoding separately. Offline fixtures do not qualify live trading or
+persisted account history.
+
 Numbers carried in `SignRequest` (`estimatedValueAda`, descriptions,
 rationale) are display anchors, not trusted amounts — the transaction bytes
 are the only authority, which is why every verification step works on the

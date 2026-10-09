@@ -197,7 +197,7 @@ private func makeSession(
         let transport = StubHTTPTransport()
         for name in [
             "strategies", "bot-status", "agent-approvals-empty",
-            "agent-signatures-empty", "agent-activity-empty",
+            "agent-signatures-empty",
         ] {
             try await transport.stub(fixture: ContractFiles.fixture(name), sticky: true)
         }
@@ -213,8 +213,40 @@ private func makeSession(
         let status = try await bot.status()
         #expect(status.status == "armed" || status.status == "disarmed")
 
-        #expect(try await bot.activity().isEmpty)
         #expect(try await ApprovalCoordinator(api: api).pending().isEmpty)
+    }
+
+    @Test func unavailableActivitySurfacesTypedFailureRatherThanEmptyHistory() async throws {
+        let transport = StubHTTPTransport()
+        try await transport.stub(fixture: ContractFiles.fixture("agent-activity-empty"))
+        let bot = BotAPI(api: try await authorizedPair(transport))
+
+        await #expect(
+            throws: AdamError.api(
+                code: "ACTIVITY_UNAVAILABLE", message: "<volatile>", statusCode: 503)
+        ) {
+            _ = try await bot.activity(limit: 25)
+        }
+        let requests = await transport.requests()
+        #expect(requests.count == 1)
+        #expect(requests.first?.path == "/api/v1/agent/activity")
+        #expect(requests.first?.query.first?.name == "limit")
+        #expect(requests.first?.query.first?.value == "25")
+        #expect(requests.first?.headers["x-adam-network"] == "preprod")
+    }
+
+    @Test func availableActivityDecodesExplicitEmptyHistory() async throws {
+        let transport = StubHTTPTransport()
+        // A database-backed successful response has a different meaning from
+        // the captured no-database refusal; this stub only tests decoding.
+        await transport.stub(
+            "GET", "/api/v1/agent/activity", status: 200,
+            json: #"{"data":{"events":[]}}"#
+        )
+        let bot = BotAPI(api: try await authorizedPair(transport))
+
+        #expect(try await bot.activity().isEmpty)
+        #expect(await transport.requests().count == 1)
     }
 
     @Test func armAndDisarmMatchCapturedFixtures() async throws {
