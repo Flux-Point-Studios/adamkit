@@ -16,6 +16,7 @@ actor StubHTTPTransport: HTTPTransport {
     struct RecordedRequest {
         let method: String
         let path: String
+        let query: [(name: String, value: String)]
         let headers: [String: String]
         let body: Data?
 
@@ -61,6 +62,7 @@ actor StubHTTPTransport: HTTPTransport {
             RecordedRequest(
                 method: request.method,
                 path: request.path,
+                query: request.query,
                 headers: request.headers,
                 body: request.body
             ))
